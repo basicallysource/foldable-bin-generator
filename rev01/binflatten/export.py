@@ -50,7 +50,7 @@ def _trim_segment(p0, p1, relief):
 def build_geometry(fp: FlatPattern, params: FlattenParams) -> LaserGeometry:
     polys = []
     for pan in fp.panels:
-        poly = Polygon(pan.poly)
+        poly = Polygon(pan.poly, pan.holes)
         if not poly.is_valid:
             poly = poly.buffer(0)
         polys.append(poly)

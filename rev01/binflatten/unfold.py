@@ -204,6 +204,110 @@ def _thickness_compensate(fp, byid, s, params):
             _update(p, _clip_halfplane(p.poly, np.array([-a, -b]), dmax),
                     "floor clearance")
 
+    return trans
+
+
+def _merged_shared_edge(model, fa, fb):
+    """Full extent of all edges shared by faces fa/fb (model units), or None."""
+    pts = []
+    for ei in fa.edge_ids & fb.edge_ids:
+        e = model.edges.get(ei)
+        if e is not None:
+            pts.extend([e.v0, e.v1])
+    if len(pts) < 2:
+        pts = _shared_edge_points(fa.outer, fb.outer)
+    if len(pts) < 2:
+        return None
+    pts = np.array(pts)
+    axis = _unit(pts[np.argmax(((pts - pts[0]) ** 2).sum(1))] - pts[0])
+    t = pts @ axis
+    return pts[t.argmin()], pts[t.argmax()]
+
+
+def _add_seam_tabs(fp, model, byid, s, params, transforms, to2d, off2d):
+    """Lock the open corner seam with tabs + slots (experimental).
+
+    The net leaves the seam between the front wall's free edge and the
+    opposite side wall open. For every pair of wall panels that share a 3D
+    edge but are not joined by a fold, the panel placed deeper in the fold
+    tree (the front wall — it swings into place last) gets tabs sticking out
+    of that edge, and the other panel gets matching through-slots. Tabs are
+    one stock thickness deep so they end flush with the slotted wall's
+    outside face; slots sit inset behind the corner line, which pulls the
+    front wall slightly inside its CAD plane as it engages.
+    """
+    n = int(params.seam_tab_count)
+    t = params.material_thickness_mm
+    if n <= 0 or t <= 0:
+        return
+    panels = {p.fid: p for p in fp.panels}
+    joined = {(f.panel_a, f.panel_b) for f in fp.folds}
+    joined |= {(b, a) for (a, b) in joined}
+    depth = {fp.root_fid: 0}
+    for f in fp.folds:                      # placement order: parent first
+        depth[f.panel_b] = depth.get(f.panel_a, 0) + 1
+
+    def map2(fid, P3):
+        X = _apply(transforms[fid], np.atleast_2d(P3))
+        return to2d(X)[0] + off2d[fid]
+
+    fids = sorted(panels)
+    for i, a in enumerate(fids):
+        for b in fids[i + 1:]:
+            if (a, b) in joined or fp.root_fid in (a, b):
+                continue                    # folded pairs and the floor (toes)
+            seam = _merged_shared_edge(model, byid[a], byid[b])
+            if seam is None:
+                continue
+            E0, E1 = seam[0] * s, seam[1] * s
+            tab_fid, slot_fid = ((a, b) if depth.get(a, 99) >= depth.get(b, 99)
+                                 else (b, a))
+
+            # --- tabs on the free wall ---------------------------------- #
+            pt = panels[tab_fid]
+            A0, A1 = map2(tab_fid, E0), map2(tab_fid, E1)
+            u = _unit(A1 - A0)
+            nrm = np.array([-u[1], u[0]])
+            if np.dot(pt.centroid - (A0 + A1) / 2, nrm) > 0:
+                nrm = -nrm                  # outward, away from the panel
+            tab_d = params.seam_tab_depth_factor * t
+            w = params.seam_tab_width_mm
+            shape = Polygon(pt.poly, pt.holes).buffer(0)
+            for k in range(n):
+                c = A0 + (k + 1) / (n + 1) * (A1 - A0)
+                tab = Polygon([c - u * w / 2 - nrm * 0.2,
+                               c + u * w / 2 - nrm * 0.2,
+                               c + u * w / 2 + nrm * tab_d,
+                               c - u * w / 2 + nrm * tab_d])
+                shape = shape.union(tab)
+            shape = _largest_piece(shape)
+            pt.poly = np.array(shape.exterior.coords[:-1])
+            pt.holes = [np.array(r.coords[:-1]) for r in shape.interiors]
+            pt.centroid = pt.poly.mean(0)
+
+            # --- slots in the wall it lands on --------------------------- #
+            ps = panels[slot_fid]
+            B0, B1 = map2(slot_fid, E0), map2(slot_fid, E1)
+            u = _unit(B1 - B0)
+            nrm = np.array([-u[1], u[0]])
+            if np.dot(ps.centroid - (B0 + B1) / 2, nrm) < 0:
+                nrm = -nrm                  # inward, into the panel
+            sw = params.seam_tab_width_mm + params.seam_slot_clearance_mm
+            sd = t + params.seam_slot_clearance_mm
+            inset = params.seam_slot_inset_factor * t
+            shape = Polygon(ps.poly, ps.holes).buffer(0)
+            for k in range(n):
+                c = B0 + (k + 1) / (n + 1) * (B1 - B0) + nrm * inset
+                slot = Polygon([c - u * sw / 2 - nrm * sd / 2,
+                                c + u * sw / 2 - nrm * sd / 2,
+                                c + u * sw / 2 + nrm * sd / 2,
+                                c - u * sw / 2 + nrm * sd / 2])
+                shape = shape.difference(slot)
+            shape = _largest_piece(shape)
+            ps.poly = np.array(shape.exterior.coords[:-1])
+            ps.holes = [np.array(r.coords[:-1]) for r in shape.interiors]
+            ps.centroid = ps.poly.mean(0)
+
 
 # --------------------------------------------------------------------------- #
 # data structures                                                               #
@@ -215,6 +319,7 @@ class Panel2D:
     role: str               # "floor" | "wall"
     poly: np.ndarray        # Nx2 flattened polygon (mm)
     centroid: np.ndarray    # 2D
+    holes: list = field(default_factory=list)  # list[Nx2] interior cutouts (slots)
 
 
 @dataclass
@@ -414,6 +519,7 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
         return best  # (d, flat3d, R, E0, E1) or None
 
     remaining = sids - {root}
+    island_off = {}        # fid -> ad-hoc 2D shift applied to detached islands
     while remaining:
         # gather best placement for every remaining face with a placed neighbour
         options = []  # (overlap, fid, parent, flat3d, R, E0, E1)
@@ -450,6 +556,7 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
             shift = np.array([mn_all[0] + params.margin_mm * 2 - poly2d[:, 0].min(),
                               params.margin_mm - poly2d[:, 1].min()])
             poly2d = poly2d + shift
+            island_off[fid] = shift
             poly2 = Polygon(poly2d)
             fp.warnings.append(
                 f"face #{fid} cannot fold off any neighbour without overlap "
@@ -471,7 +578,12 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
         remaining.discard(fid)
 
     # real-stock thickness compensation (fold strips + floor clearance)
-    _thickness_compensate(fp, byid, s, params)
+    trans = _thickness_compensate(fp, byid, s, params)
+
+    # tabs + slots across the open corner seam (front wall <-> far side wall)
+    off2d = {p.fid: island_off.get(p.fid, np.zeros(2)) + trans.get(p.fid, np.zeros(2))
+             for p in fp.panels}
+    _add_seam_tabs(fp, model, byid, s, params, transforms, to2d, off2d)
 
     # shift so min corner sits at margin
     mn, _ = fp.bounds()
@@ -479,6 +591,7 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
     for p in fp.panels:
         p.poly = p.poly + shift
         p.centroid = p.centroid + shift
+        p.holes = [h + shift for h in p.holes]
     for f in fp.folds:
         f.p0 = f.p0 + shift
         f.p1 = f.p1 + shift

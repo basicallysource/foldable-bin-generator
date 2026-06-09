@@ -72,6 +72,21 @@ class FlattenParams:
     # instead of carrying the CAD-thickness tabs that land on the toes.
     floor_clearance_factor: float = 1.0
 
+    # ----- corner tabs / slots (experimental) --------------------------------
+    # Lock the open corner seam: the wall placed deeper in the fold tree (the
+    # front wall, which swings in last) gets `seam_tab_count` tabs sticking
+    # out of its free edge; the wall it meets gets matching through-slots.
+    # Tabs protrude seam_tab_depth_factor * material_thickness so they end
+    # flush with the other wall's outside face. Slot centres sit
+    # seam_slot_inset_factor * material_thickness behind the corner line,
+    # which pulls the front wall slightly inward of its CAD plane — intended.
+    # 0 tabs = feature off.
+    seam_tab_count: int = 2
+    seam_tab_width_mm: float = 12.0
+    seam_tab_depth_factor: float = 1.0
+    seam_slot_clearance_mm: float = 0.2   # added to slot length and width
+    seam_slot_inset_factor: float = 1.5
+
     # ----- shell selection / geometry --------------------------------------
     # Which surface of the bin's wall to flatten. "outer" (default) develops
     # the bin's exterior faces — the right choice for dimensional control
@@ -108,6 +123,8 @@ class FlattenParams:
             cur = cls.__dataclass_fields__[k].type
             if cur in ("float", float):
                 clean[k] = float(v)
+            elif cur in ("int", int):
+                clean[k] = int(float(v))
             elif cur in ("bool", bool):
                 clean[k] = str(v).lower() in ("1", "true", "on", "yes")
             else:

@@ -118,7 +118,18 @@
     </fieldset>
 
     <fieldset>
-      <legend>6 · geometry</legend>
+      <legend>6 · corner tabs</legend>
+      <label><span>tab count</span><input name="seam_tab_count" value="{{defaults.seam_tab_count}}"></label>
+      <div class="hint">tabs on the front wall's free edge + slots in the far side wall; 0 = off</div>
+      <label><span>tab width (mm)</span><input name="seam_tab_width_mm" value="{{defaults.seam_tab_width_mm}}"></label>
+      <label><span>tab depth ×t</span><input name="seam_tab_depth_factor" value="{{defaults.seam_tab_depth_factor}}"></label>
+      <label><span>slot clearance (mm)</span><input name="seam_slot_clearance_mm" value="{{defaults.seam_slot_clearance_mm}}"></label>
+      <label><span>slot inset ×t</span><input name="seam_slot_inset_factor" value="{{defaults.seam_slot_inset_factor}}"></label>
+      <div class="hint">inset pulls the front wall inward so the tabs engage</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>7 · geometry</legend>
       <label><span>shell</span>
         <select name="shell"><option value="outer">outer</option><option value="inner">inner</option></select></label>
       <label><span>root face</span><input name="root" value="{{defaults.root}}"></label>
@@ -127,7 +138,7 @@
     </fieldset>
 
     <fieldset>
-      <legend>7 · layout</legend>
+      <legend>8 · layout</legend>
       <label><span>margin (mm)</span><input name="margin_mm" value="{{defaults.margin_mm}}"></label>
       <label><span>labels</span><input type="checkbox" name="add_labels" checked></label>
     </fieldset>

@@ -58,11 +58,15 @@ Everything tunable lives in `binflatten/params.py` (`FlattenParams`). Highlights
 material thickness (default 1/8" = 3.175 mm), kerf + compensation, fold mode
 (score / perforate / line-only), perforation dash/gap, fold end relief,
 fold-comp + floor-clearance factors (stock-thickness compensation, in units of
-material thickness), shell side, root face, layout margin, labels, units.
+material thickness), corner tab/slot count + sizing (experimental seam lock),
+shell side, root face, layout margin, labels, units.
 
 ## Known limitations (candidates for rev02+)
 
-- Corner seams between walls are open (no glue tabs yet).
+- Corner seams: the front wall's free edge now gets experimental tabs that
+  engage through-slots in the far side wall (`seam_tab_count` etc.); the slot
+  inset deliberately pulls the front wall a little inside its CAD plane. The
+  floor-front seam is still open (the toes live there). No glue tabs yet.
 - Thickness compensation assumes the fold pivots about the intact skin on the
   inside of the bend (matches measured behaviour for perforated 1/8"
   cardboard); the factors are parameters — calibrate per material.
