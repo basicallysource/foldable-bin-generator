@@ -8,9 +8,14 @@ __pycache__/
 *.egg-info/
 
 # generated laser files / uploads
-rev01/outputs/uploads/
-rev01/outputs/*.svg
-rev01/outputs/*.dxf
+outputs/uploads/
+outputs/*.svg
+outputs/*.dxf
+
+# local working folders (not source)
+lightburn files/
+test bin svgs/
+test cards/
 
 # scratch
 /tmp/

@@ -1,8 +1,7 @@
 # Project: Laser-cut LEGO sorter bins
 
 Tooling to convert bin CAD into laser-cuttable flat patterns for a LEGO sorting
-machine. Each revision of the converter lives in its own folder (`rev01/`, …)
-because the approach is expected to iterate heavily.
+machine.
 
 ## The machine & bins (domain context)
 
@@ -40,7 +39,7 @@ Because the toes protrude from the floor's front edge, the **front wall cannot
 be hinged/folded off that edge** — folding it flat would land it on top of the
 toes (a real ~118 mm² collision in the sample part). The front wall must instead
 **fold off one of the side walls**. The unfolder discovers this automatically by
-being overlap-aware (see `rev01/`). This generalises: any panel is hinged on the
+being overlap-aware. This generalises: any panel is hinged on the
 neighbour that produces no collision.
 
 ## Source CAD
@@ -62,16 +61,16 @@ neighbour that produces no collision.
 - "Everything that can affect a successful laser job is a parameter" — kerf,
   kerf compensation, fold mode (score/perf/line), perforation dash/gap, fold end
   relief, material thickness, units, margins, etc. See
-  `rev01/binflatten/params.py`.
+  `binflatten/params.py`.
 
-## rev01 — what it does
+## What it does
 
 A local Python web app: upload a bin STEP, tune parameters, preview the flat net
 (cut/fold colour-coded), download SVG/DXF. Pipeline:
 `STEP → parse → pick shell → overlap-aware unfold → kerf + score → SVG/DXF`.
-See `rev01/README.md` for the module map and limitations.
+See `README.md` for the module map and limitations.
 
-**Verify before cutting**: `rev01/verify.py` re-folds the generated pattern in
+**Verify before cutting**: `verify.py` re-folds the generated pattern in
 3D (same crease model as the compensation) and compares silhouettes +
 outermost dimensions against the STEP — run it after any geometry change
 (`python verify.py <step> --out outputs/verify`; exit 1 = dimension off by
@@ -80,7 +79,7 @@ view + overlay images + dimension table). One known physical deviation: the
 leaning front wall's raised bottom edge costs ~1 mm of ground-level front
 extent.
 
-Run: `cd rev01 && python app.py` → http://127.0.0.1:5000
+Run: `python app.py` → http://127.0.0.1:5000
 
 ## Conventions
 
@@ -88,4 +87,4 @@ Run: `cd rev01 && python app.py` → http://127.0.0.1:5000
   (per global CLAUDE.md; no venvs).
 - Internal units are **millimetres**; conversions happen at parse (metres→mm)
   and export (mm→output units).
-- New approaches go in a new `revNN/` folder; don't break older revs.
+- Code lives at the repo root (`app.py`, `binflatten/`, `verify.py`).
