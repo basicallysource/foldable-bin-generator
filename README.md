@@ -1,15 +1,15 @@
-# binflatten · rev01
+# foldable-bin-generator
 
 Turn a bin's CAD (STEP B-rep) into a single, foldable, laser-cuttable flat
 pattern (SVG + DXF) for LightBurn.
 
-rev01 goal: **flatten the whole bin into one part and score the fold lines**, so
+Goal: **flatten the whole bin into one part and score the fold lines**, so
 you laser one piece of 1/8" cardboard and fold it up into the bin.
 
 ## Run
 
 ```bash
-/opt/homebrew/opt/python@3.11/libexec/bin/python -m pip install -r requirements.txt
+pip install -r requirements.txt
 python app.py
 # open http://127.0.0.1:5000
 ```
@@ -87,7 +87,7 @@ fold-comp + floor-clearance factors (stock-thickness compensation, in units of
 material thickness), corner tab/slot count + sizing (experimental seam lock),
 shell side, root face, layout margin, labels, units.
 
-## Known limitations (candidates for rev02+)
+## Known limitations
 
 - Corner seams: the front wall's free edge is trimmed back one wall thickness
   (the CAD exterior face runs THROUGH the far side wall's slab — uncut it
