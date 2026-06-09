@@ -123,7 +123,11 @@ class FlattenParams:
     cut_color: str = "#ff0000"          # SVG stroke for cut layer
     score_color: str = "#0000ff"        # SVG stroke for score/fold layer
     add_labels: bool = True             # annotate panels (engrave text)
-    label_color: str = "#00a000"        # SVG fill for label text (own layer)
+    # Engrave the job settings (perf dash/gap, thickness, kerf, comp…) in the
+    # bottom margin, so a cut part records how it was made. SVG text layer.
+    add_settings_label: bool = False
+    # Text layer colour — orange, distinct from cut/score/overlay layers.
+    label_color: str = "#ff9500"
 
     # ----------------------------------------------------------------------- #
     def to_dict(self) -> dict:

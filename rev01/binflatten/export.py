@@ -51,6 +51,26 @@ def _trim_segment(p0, p1, relief):
     return p0 + u * relief, p1 - u * relief
 
 
+def settings_label_text(params: FlattenParams) -> str:
+    """One-line summary of the settings that shaped this cut, for engraving."""
+    bits = [f"t={params.material_thickness_mm:g}mm"]
+    if params.fold_mode == "perf":
+        bits.append(f"perf {params.perf_dash_mm:g}/{params.perf_gap_mm:g}")
+    else:
+        bits.append(f"fold={params.fold_mode}")
+    if params.overlay_score:
+        bits.append("+score overlay")
+    bits.append(f"kerf {params.kerf_mm:g}")
+    bits.append(f"comp {params.fold_comp_factor:g}")
+    bits.append(f"clear {params.floor_clearance_factor:g}")
+    if params.fold_end_relief_mm:
+        bits.append(f"relief {params.fold_end_relief_mm:g}")
+    if params.seam_tab_count:
+        bits.append(f"tabs {params.seam_tab_count}x{params.seam_tab_width_mm:g}"
+                    f"+{params.seam_tab_dovetail_mm:g}dt")
+    return "  |  ".join(bits)
+
+
 def build_geometry(fp: FlatPattern, params: FlattenParams) -> LaserGeometry:
     polys = []
     for pan in fp.panels:
@@ -113,6 +133,9 @@ def build_geometry(fp: FlatPattern, params: FlattenParams) -> LaserGeometry:
     mn, mx = fp.bounds()
     width = mx[0] - mn[0] + 2 * params.margin_mm
     height = mx[1] - mn[1] + 2 * params.margin_mm
+    if params.add_settings_label:
+        labels.append((settings_label_text(params),
+                       np.array([width / 2.0, height - 1.5])))
     warnings = (fp.warnings or []) + warnings
     # optional continuous overlay on the same creases (own colour/layer)
     aux = list(score_segments) if params.overlay_score else None
@@ -195,8 +218,9 @@ def to_svg(geom: LaserGeometry, params: FlattenParams, title="bin flat pattern")
                        f'x2="{b[0]:.4f}" y2="{b[1]:.4f}"/>')
         out.append('</g>')
 
-    # labels (engrave) — kept on their own layer so they can be disabled
-    if params.add_labels and geom.labels:
+    # labels (engrave) — own layer; geom.labels is already gated per option
+    # (panel tags by add_labels, settings line by add_settings_label)
+    if geom.labels:
         out.append(f'<g id="labels" fill="{params.label_color}" '
                    f'font-size="{4*sc:.3f}" font-family="sans-serif">')
         for text, pos in geom.labels:
@@ -292,5 +316,9 @@ def to_preview_svg(fp: FlatPattern, geom: LaserGeometry, params: FlattenParams) 
             out.append(f'<text x="{pan.centroid[0]:.1f}" y="{pan.centroid[1]:.1f}" '
                        f'fill="#cdd" font-size="6" text-anchor="middle">'
                        f'{pan.role} #{pan.fid}</text>')
+    if params.add_settings_label:
+        out.append(f'<text x="{W/2:.1f}" y="{H-1.5:.1f}" fill="{params.label_color}" '
+                   f'font-size="4" text-anchor="middle">'
+                   f'{settings_label_text(params)}</text>')
     out.append('</svg>')
     return "\n".join(out)
