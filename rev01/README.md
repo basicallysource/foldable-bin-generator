@@ -1,0 +1,56 @@
+# binflatten · rev01
+
+Turn a bin's CAD (STEP B-rep) into a single, foldable, laser-cuttable flat
+pattern (SVG + DXF) for LightBurn.
+
+rev01 goal: **flatten the whole bin into one part and score the fold lines**, so
+you laser one piece of 1/8" cardboard and fold it up into the bin.
+
+## Run
+
+```bash
+/opt/homebrew/opt/python@3.11/libexec/bin/python -m pip install -r requirements.txt
+python app.py
+# open http://127.0.0.1:5000
+```
+
+Upload a bin `.step`, tweak parameters, watch the net update (red = cut, blue =
+fold/score), download SVG/DXF.
+
+## How it works
+
+```
+STEP B-rep ──▶ parse faces+edges ──▶ pick shell ──▶ overlap-aware unfold ──▶ kerf+score ──▶ SVG/DXF
+ step_io.py        step_io.py        unfold.py          unfold.py            export.py     export.py
+```
+
+1. **Parse** (`step_io.py`) — a small pure-Python STEP reader. The bin is mostly
+   planar faces with exact plane equations plus full topology (which faces share
+   an edge). No CAD kernel needed. Units auto-detected (Onshape exports metres).
+2. **Shell** (`unfold.py`) — each wall is a thin slab (a parallel inner/outer
+   face pair ~1.8 mm apart in the CAD). We keep one connected shell (inner or
+   outer) = floor + walls.
+3. **Unfold** (`unfold.py`) — pick the floor (the hub adjacent to the most
+   walls), then place each wall by hinging it on an already-placed neighbour.
+   It is **overlap-aware**: it tries every candidate hinge and rejects any that
+   makes the flap collide. This is what makes the **front wall fold off a side
+   wall** instead of the floor's protruding bracket "toes". A panel with no
+   collision-free hinge is emitted as a separate island with a warning.
+4. **Export** (`export.py`) — union the panels, kerf-compensate (offset the
+   solid outward by kerf/2 so the part holds nominal size), emit CUT (red) and
+   SCORE/FOLD (blue) on separate layers/colours for LightBurn.
+
+## Parameters
+
+Everything tunable lives in `binflatten/params.py` (`FlattenParams`). Highlights:
+material thickness (default 1/8" = 3.175 mm), kerf + compensation, fold mode
+(score / perforate / line-only), perforation dash/gap, fold end relief, shell
+side, root face, layout margin, labels, units.
+
+## Known limitations (candidates for rev02+)
+
+- Corner seams between walls are open (no glue tabs yet).
+- Bend allowance is geometric (fold about the shared edge); it does not yet
+  account for 1/8" stock thickness at the folds.
+- STL input not yet supported (STEP only — it carries exact topology).
+- Curved edges are chorded (fine here; only tiny fillet faces are curved).

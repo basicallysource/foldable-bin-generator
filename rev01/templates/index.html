@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>binflatten · rev01</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#21262d; --ink:#e6edf3;
+    --muted:#8b949e; --cut:#ff5555; --score:#5599ff; --accent:#3fb950;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+       background:var(--bg);color:var(--ink);}
+  header{padding:14px 20px;border-bottom:1px solid var(--line);
+         display:flex;align-items:baseline;gap:12px}
+  header h1{font-size:16px;margin:0;letter-spacing:.5px}
+  header .tag{color:var(--muted);font-size:12px}
+  .wrap{display:grid;grid-template-columns:340px 1fr;gap:0;height:calc(100vh - 51px)}
+  .controls{overflow-y:auto;border-right:1px solid var(--line);padding:16px}
+  .stage{position:relative;display:flex;flex-direction:column}
+  .view{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;
+        background:
+          linear-gradient(#11161d 1px,transparent 1px) 0 0/20px 20px,
+          linear-gradient(90deg,#11161d 1px,transparent 1px) 0 0/20px 20px,
+          #0a0d12;}
+  .view svg{max-width:96%;max-height:96%;filter:drop-shadow(0 4px 20px #0008)}
+  .bar{border-top:1px solid var(--line);padding:10px 16px;display:flex;
+       gap:14px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:12px}
+  fieldset{border:1px solid var(--line);border-radius:8px;margin:0 0 14px;padding:10px 12px}
+  legend{color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:0 6px}
+  label{display:flex;justify-content:space-between;align-items:center;gap:8px;
+        margin:7px 0;color:var(--muted)}
+  label span{flex:1}
+  input,select{background:#0d1117;border:1px solid var(--line);color:var(--ink);
+        border-radius:5px;padding:4px 6px;width:96px;font:inherit;text-align:right}
+  select{width:110px;text-align:left}
+  input[type=checkbox]{width:auto}
+  .file{width:100%;margin-bottom:8px}
+  .file input{width:100%;text-align:left}
+  button{background:var(--accent);color:#06210f;border:0;border-radius:6px;
+         padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}
+  button.ghost{background:#21262d;color:var(--ink)}
+  a.dl{color:var(--score);text-decoration:none;border:1px solid var(--line);
+       padding:5px 9px;border-radius:6px}
+  a.dl:hover{border-color:var(--score)}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .warn{color:#e3b341}
+  .err{color:var(--cut)}
+  #status{min-height:16px}
+  .hint{color:#6e7681;font-size:11px;margin:-3px 0 8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>binflatten</h1><span class="tag">rev01 · STEP → flat laser net</span>
+</header>
+<div class="wrap">
+  <form class="controls" id="form" onsubmit="return false">
+    <fieldset>
+      <legend>1 · model</legend>
+      <div class="file"><input type="file" id="file" accept=".step,.stp"></div>
+      <div class="hint" id="fname">no file — upload a bin .step</div>
+      <button type="button" id="uploadBtn" class="ghost">upload</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>2 · material</legend>
+      <label><span>thickness (mm)</span><input name="material_thickness_mm" value="{{defaults.material_thickness_mm}}"></label>
+      <div class="hint">1/8" cardboard = 3.175 mm</div>
+      <label><span>output units</span>
+        <select name="output_units">
+          <option value="mm">mm</option><option value="in">in</option>
+        </select></label>
+      <label><span>extra scale</span><input name="scale" value="{{defaults.scale}}"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>3 · kerf</legend>
+      <label><span>compensate</span><input type="checkbox" name="kerf_compensate" checked></label>
+      <label><span>kerf (mm)</span><input name="kerf_mm" value="{{defaults.kerf_mm}}"></label>
+      <label><span>min hole (mm²)</span><input name="min_hole_area_mm2" value="{{defaults.min_hole_area_mm2}}"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>4 · fold / score</legend>
+      <label><span>mode</span>
+        <select name="fold_mode">
+          <option value="score">score</option>
+          <option value="perf">perforate</option>
+          <option value="none">line only</option>
+        </select></label>
+      <label><span>perf dash (mm)</span><input name="perf_dash_mm" value="{{defaults.perf_dash_mm}}"></label>
+      <label><span>perf gap (mm)</span><input name="perf_gap_mm" value="{{defaults.perf_gap_mm}}"></label>
+      <label><span>end relief (mm)</span><input name="fold_end_relief_mm" value="{{defaults.fold_end_relief_mm}}"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>5 · geometry</legend>
+      <label><span>shell</span>
+        <select name="shell"><option value="inner">inner</option><option value="outer">outer</option></select></label>
+      <label><span>root face</span><input name="root" value="{{defaults.root}}"></label>
+      <div class="hint">"largest" = auto floor, or a STEP face id</div>
+      <label><span>slab max (mm)</span><input name="slab_max_thickness_mm" value="{{defaults.slab_max_thickness_mm}}"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>6 · layout</legend>
+      <label><span>margin (mm)</span><input name="margin_mm" value="{{defaults.margin_mm}}"></label>
+      <label><span>labels</span><input type="checkbox" name="add_labels" checked></label>
+    </fieldset>
+
+    <button type="button" id="go" style="width:100%">flatten ▸</button>
+  </form>
+
+  <div class="stage">
+    <div class="view" id="view">
+      <div style="color:var(--muted)">upload a STEP file, then press <b>flatten</b></div>
+    </div>
+    <div class="bar">
+      <span id="status"></span>
+      <span id="dims"></span>
+      <span><span class="swatch" style="background:var(--cut)"></span>cut</span>
+      <span><span class="swatch" style="background:var(--score)"></span>fold/score</span>
+      <span id="dl"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+let token = null;
+const $ = s => document.querySelector(s);
+
+$('#file').onchange = () => {
+  const f = $('#file').files[0];
+  $('#fname').textContent = f ? f.name : 'no file';
+};
+
+$('#uploadBtn').onclick = async () => {
+  const f = $('#file').files[0];
+  if(!f){ setStatus('pick a file first','err'); return; }
+  const fd = new FormData(); fd.append('file', f);
+  setStatus('uploading…');
+  const r = await fetch('/upload',{method:'POST',body:fd});
+  const j = await r.json();
+  if(j.error){ setStatus(j.error,'err'); return; }
+  token = j.token;
+  setStatus('uploaded ✓ — press flatten');
+  flatten();
+};
+
+$('#go').onclick = flatten;
+
+function setStatus(m,cls){ const s=$('#status'); s.textContent=m; s.className=cls||''; }
+
+async function flatten(){
+  if(!token){ setStatus('upload a file first','err'); return; }
+  const fd = new FormData($('#form'));
+  fd.append('token', token);
+  // checkboxes: ensure present as bool
+  for(const cb of $('#form').querySelectorAll('input[type=checkbox]'))
+    fd.set(cb.name, cb.checked ? 'true':'false');
+  setStatus('flattening…');
+  const r = await fetch('/process',{method:'POST',body:fd});
+  const j = await r.json();
+  if(j.error){ setStatus(j.error,'err'); $('#view').innerHTML=''; return; }
+  $('#view').innerHTML = j.preview;
+  $('#dims').textContent = `${j.width} × ${j.height} mm · ${j.n_panels} panels · ${j.n_folds} folds · root #${j.root}`;
+  $('#dl').innerHTML = `<a class="dl" href="${j.svg_url}">⬇ svg</a> <a class="dl" href="${j.dxf_url}">⬇ dxf</a>`;
+  if(j.warnings && j.warnings.length){
+    setStatus('⚠ '+j.warnings.join(' · '),'warn');
+  } else { setStatus('done ✓','accent'); }
+}
+</script>
+</body>
+</html>

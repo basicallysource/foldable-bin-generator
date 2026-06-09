@@ -1,0 +1,4 @@
+flask>=3.0
+numpy>=1.24
+shapely>=2.0
+# matplotlib is only needed for the dev/diagnostic scripts, not the app itself.

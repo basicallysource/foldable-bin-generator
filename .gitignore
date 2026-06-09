@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# generated laser files / uploads
+rev01/outputs/uploads/
+rev01/outputs/*.svg
+rev01/outputs/*.dxf
+
+# scratch
+/tmp/
