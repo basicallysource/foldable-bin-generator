@@ -123,9 +123,13 @@ class FlattenParams:
     cut_color: str = "#ff0000"          # SVG stroke for cut layer
     score_color: str = "#0000ff"        # SVG stroke for score/fold layer
     add_labels: bool = True             # annotate panels (engrave text)
-    # Engrave the job settings (perf dash/gap, thickness, kerf, comp…) in the
-    # bottom margin, so a cut part records how it was made. SVG text layer.
+    # Engrave the part name + job settings (perf dash/gap, thickness, kerf,
+    # comp…) line by line on the floor panel, so a cut bin records what it is
+    # and how it was made. SVG text layer.
     add_settings_label: bool = False
+    # Name engraved as the first line of the settings block. Filled
+    # automatically from the uploaded/processed file name when left empty.
+    part_name: str = ""
     # Text layer colour — orange, distinct from cut/score/overlay layers.
     label_color: str = "#ff9500"
 

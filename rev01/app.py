@@ -74,6 +74,10 @@ def upload():
     token = uuid.uuid4().hex
     path = os.path.join(UPLOADS, token + ext)
     f.save(path)
+    # remember the original name (files are stored under the token) so the
+    # engraved settings block can carry it
+    with open(os.path.join(UPLOADS, token + ".name"), "w") as nf:
+        nf.write(os.path.splitext(f.filename)[0])
     return jsonify(token=token, filename=f.filename)
 
 
@@ -85,6 +89,15 @@ def _resolve(token):
     return None
 
 
+def _original_name(token):
+    p = os.path.join(UPLOADS, token + ".name")
+    try:
+        with open(p) as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 @app.route("/process", methods=["POST"])
 def process_route():
     token = request.form.get("token")
@@ -93,6 +106,8 @@ def process_route():
         return jsonify(error="unknown or missing upload token"), 400
     try:
         params = _params_from_form(request.form)
+        if not params.part_name:
+            params.part_name = _original_name(token)
         fp, geom = process(path, params)
         preview = to_preview_svg(fp, geom, params)
     except Exception as e:  # surface geometry errors to the UI

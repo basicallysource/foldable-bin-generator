@@ -21,6 +21,8 @@ def load_model(path: str):
 
 def process(path: str, params: FlattenParams):
     """Return (flat_pattern, laser_geometry)."""
+    if not params.part_name:
+        params.part_name = os.path.splitext(os.path.basename(path))[0]
     model = load_model(path)
     fp = unfold(model, params)
     geom = build_geometry(fp, params)
