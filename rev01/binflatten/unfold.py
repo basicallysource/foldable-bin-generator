@@ -74,6 +74,138 @@ def _shared_edge_points(poly_a, poly_b, tol=1e-6):
 
 
 # --------------------------------------------------------------------------- #
+# 2D polygon clipping helpers (shapely-backed)                                  #
+# --------------------------------------------------------------------------- #
+
+def _largest_piece(geom):
+    """Largest Polygon in a shapely geometry, or None."""
+    if geom.is_empty:
+        return None
+    if geom.geom_type == "Polygon":
+        return geom
+    pieces = [g for g in getattr(geom, "geoms", []) if g.geom_type == "Polygon"]
+    return max(pieces, key=lambda g: g.area) if pieces else None
+
+
+def _clip_halfplane(pts, nrm, dmax):
+    """Keep the part of polygon `pts` with nrm·x <= dmax. Returns Nx2 or None."""
+    nrm = np.asarray(nrm, float)
+    L = np.linalg.norm(nrm)
+    nrm, dmax = nrm / L, dmax / L
+    axis = np.array([-nrm[1], nrm[0]])
+    big = 1e6
+    p = nrm * dmax
+    quad = np.array([p + axis * big, p - axis * big,
+                     p - axis * big - nrm * big, p + axis * big - nrm * big])
+    res = _largest_piece(Polygon(pts).buffer(0).intersection(Polygon(quad)))
+    return np.array(res.exterior.coords[:-1]) if res is not None else None
+
+
+def _subtract_strip(pts, p0, p1, nrm, c, ext):
+    """Remove from polygon `pts` the strip of width c on the -nrm side of the
+    segment p0-p1 (extended by `ext` along the segment). Returns Nx2 or None."""
+    axis = _unit(np.asarray(p1, float) - np.asarray(p0, float))
+    a0, a1 = sorted([float(axis @ p0), float(axis @ p1)])
+    a0, a1 = a0 - ext, a1 + ext
+    d = float(nrm @ p0)
+    corners = np.array([axis * a0 + nrm * (d - c), axis * a1 + nrm * (d - c),
+                        axis * a1 + nrm * (d + 1e-3), axis * a0 + nrm * (d + 1e-3)])
+    res = _largest_piece(Polygon(pts).buffer(0).difference(Polygon(corners)))
+    return np.array(res.exterior.coords[:-1]) if res is not None else None
+
+
+def _thickness_compensate(fp, byid, s, params):
+    """Account for real stock thickness at the folds.
+
+    The pattern develops one shell of a CAD whose walls (~1.8 mm) are thinner
+    than the stock, and a perforated fold pivots about the intact skin on the
+    inside of the bend — so each folded panel lands one stock thickness
+    outside its fold line. Measured on the outer shell: the bin comes out two
+    thicknesses too wide and one too tall.
+
+    Fix (a): at every fold remove a strip of width
+        c = fold_comp_factor * thickness [* tan(fold_angle/2)]
+    from EACH side of the fold line; the child panel and everything hinged on
+    it slide 2c toward the parent so the panels stay edge-to-edge, and the
+    fold line moves to the new shared edge.
+
+    Fix (b): panels not hinged on the root (the front wall) get everything
+    below `floor_clearance_factor * thickness` above the root plane cut off,
+    so their bottom edge clears the real-thickness floor and its bracket toes
+    (instead of carrying CAD-thickness tabs that land on the toes).
+    """
+    t = params.material_thickness_mm
+    panels = {p.fid: p for p in fp.panels}
+    orig = {p.fid: p.poly.copy() for p in fp.panels}
+    trans = {fid: np.zeros(2) for fid in panels}
+    parent_of = {f.panel_b: f.panel_a for f in fp.folds}
+
+    def _update(panel, pts, what):
+        if pts is None or len(pts) < 3:
+            fp.warnings.append(
+                f"thickness compensation removed panel #{panel.fid} entirely "
+                f"({what}) — left it unmodified")
+            return
+        panel.poly = pts
+        panel.centroid = pts.mean(0)
+
+    if params.fold_comp_factor > 0 and t > 0:
+        # fp.folds is in placement order, so a panel's hinge fold is processed
+        # before any fold where it is the parent and `trans` is ready.
+        for f in fp.folds:
+            rot = np.radians(min(f.angle_deg, 180.0 - f.angle_deg))
+            c = params.fold_comp_factor * t
+            if params.fold_comp_angle_scaled:
+                c *= np.tan(rot / 2.0)
+            if c <= 0:
+                continue
+            par, ch = f.panel_a, f.panel_b
+            p0, p1 = np.asarray(f.p0, float), np.asarray(f.p1, float)
+            axis = _unit(p1 - p0)
+            nrm = np.array([-axis[1], axis[0]])
+            if np.dot(panels[ch].centroid - (p0 + p1) / 2, nrm) < 0:
+                nrm = -nrm                      # nrm points toward the child
+            p0, p1 = p0 + trans[par], p1 + trans[par]
+            d = float(nrm @ p0)
+            # parent: a finite strip, not a half-plane — the infinite line
+            # would also shave features far from the hinge (the floor's toes).
+            _update(panels[par],
+                    _subtract_strip(panels[par].poly, p0, p1, nrm, c, ext=c),
+                    f"fold strip toward #{ch}")
+            # child subtree slides 2c toward the parent; child loses its strip
+            trans[ch] = trans[par] - 2.0 * c * nrm
+            _update(panels[ch],
+                    _clip_halfplane(orig[ch] + trans[ch], -nrm, -(d - c)),
+                    f"hinge strip on #{par}")
+            f.p0, f.p1 = p0 - c * nrm, p1 - c * nrm
+
+    if params.floor_clearance_factor > 0 and t > 0:
+        clearance = params.floor_clearance_factor * t
+        root = fp.root_fid
+        rf = byid[root]
+        n_r = _unit(rf.normal)
+        r0 = rf.outer[0] * s
+        heights = [((byid[p.fid].outer * s) - r0) @ n_r
+                   for p in fp.panels if p.fid != root]
+        if heights and np.concatenate(heights).mean() < 0:
+            n_r = -n_r                          # orient toward the bin interior
+        for p in fp.panels:
+            if p.fid == root or parent_of.get(p.fid) == root:
+                continue   # floor-hinged walls: the fold strip IS their trim
+            h = ((byid[p.fid].outer * s) - r0) @ n_r
+            if h.min() > clearance - 1e-6:
+                continue
+            # height above the floor plane is affine in the flat coordinates
+            # (the panel is rigid), so the cut is a straight 2D line.
+            A = np.column_stack([orig[p.fid], np.ones(len(h))])
+            (a, b, c0), *_ = np.linalg.lstsq(A, h, rcond=None)
+            tx, ty = trans[p.fid]
+            dmax = -(clearance - c0 + a * tx + b * ty)
+            _update(p, _clip_halfplane(p.poly, np.array([-a, -b]), dmax),
+                    "floor clearance")
+
+
+# --------------------------------------------------------------------------- #
 # data structures                                                               #
 # --------------------------------------------------------------------------- #
 
@@ -162,28 +294,11 @@ def _select_shell(model: Model, params: FlattenParams):
         # only one shell visible (e.g. open/zero-thickness model); use it
         chosen = comps[0]
     else:
-        c0, c1 = comps[0], comps[1]
-        # Decide which component is the inner (cavity) shell: the inner faces'
-        # outward normals point toward the other shell's centroid region.
-        def centroid(comp):
-            pts = np.vstack([byid[i].outer for i in comp])
-            return pts.mean(0)
-        cen0, cen1 = centroid(c0), centroid(c1)
-        # For component c0, average dot of (face normal) with (vector to c1).
-        def inwardness(comp, other_cen):
-            acc = 0.0
-            for i in comp:
-                f = byid[i]
-                fc = f.outer.mean(0)
-                acc += np.dot(_unit(f.normal), _unit(other_cen - fc))
-            return acc / len(comp)
-        in0 = inwardness(c0, cen1)
-        in1 = inwardness(c1, cen0)
-        # inner shell = the one whose normals point AWAY from the other shell
-        # (cavity side faces away from the surrounding material shell).
-        inner = c0 if in0 < in1 else c1
-        outer = c1 if inner is c0 else c0
-        chosen = inner if params.shell == "inner" else outer
+        # The exterior shell wraps around the outside of the slabs, so every
+        # exterior face is larger than its cavity-side partner: total area
+        # tells the shells apart. (Face normals in these STEP exports are not
+        # consistently oriented, so a normal-based test is unreliable.)
+        chosen = comps[1] if params.shell == "inner" else comps[0]
 
     return [byid[i] for i in chosen]
 
@@ -354,6 +469,9 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
                                      angle_deg=180 - dih,
                                      panel_a=parent, panel_b=fid))
         remaining.discard(fid)
+
+    # real-stock thickness compensation (fold strips + floor clearance)
+    _thickness_compensate(fp, byid, s, params)
 
     # shift so min corner sits at margin
     mn, _ = fp.bounds()

@@ -87,11 +87,18 @@ def build_geometry(fp: FlatPattern, params: FlattenParams) -> LaserGeometry:
             f"flat pattern split into {len(pieces)} disconnected pieces — "
             "panels may not all be joined by folds")
 
-    # score / fold segments (with optional end relief)
+    # score / fold segments: clipped to the material (compensation can leave a
+    # fold line slightly longer than the new shared edge), then end relief.
     score_segments = []
     for f in fp.folds:
-        p0, p1 = _trim_segment(np.asarray(f.p0), np.asarray(f.p1),
-                               params.fold_end_relief_mm)
+        p0, p1 = np.asarray(f.p0), np.asarray(f.p1)
+        seg = LineString([p0, p1]).intersection(union)
+        if seg.geom_type == "MultiLineString" and len(seg.geoms):
+            seg = max(seg.geoms, key=lambda g: g.length)
+        if seg.geom_type == "LineString" and seg.length > 1e-6:
+            coords = np.asarray(seg.coords)
+            p0, p1 = coords[0], coords[-1]
+        p0, p1 = _trim_segment(p0, p1, params.fold_end_relief_mm)
         score_segments.append((p0, p1))
 
     labels = []

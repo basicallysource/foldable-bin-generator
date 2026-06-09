@@ -28,14 +28,26 @@ STEP B-rep ──▶ parse faces+edges ──▶ pick shell ──▶ overlap-aw
    planar faces with exact plane equations plus full topology (which faces share
    an edge). No CAD kernel needed. Units auto-detected (Onshape exports metres).
 2. **Shell** (`unfold.py`) — each wall is a thin slab (a parallel inner/outer
-   face pair ~1.8 mm apart in the CAD). We keep one connected shell (inner or
-   outer) = floor + walls.
+   face pair ~1.8 mm apart in the CAD). We keep one connected shell = floor +
+   walls. Default is the **outer** (exterior) shell — the exterior faces are
+   the larger component (face normals in these exports are not reliably
+   oriented, so total area tells the shells apart). The exterior is what the
+   machine fit and the bracket toes care about.
 3. **Unfold** (`unfold.py`) — pick the floor (the hub adjacent to the most
    walls), then place each wall by hinging it on an already-placed neighbour.
    It is **overlap-aware**: it tries every candidate hinge and rejects any that
    makes the flap collide. This is what makes the **front wall fold off a side
    wall** instead of the floor's protruding bracket "toes". A panel with no
    collision-free hinge is emitted as a separate island with a warning.
+   Then **stock-thickness compensation** runs: a perforated fold pivots about
+   the intact skin on the inside of the bend, so an uncompensated bin folds up
+   one stock thickness too tall and two too wide. A strip of
+   `fold_comp_factor * thickness * tan(fold/2)` is removed from *each* side of
+   every fold (panels slide toward the floor to stay attached), and panels not
+   hinged on the floor (the front wall) get their bottom edge cut
+   `floor_clearance_factor * thickness` above the floor plane so they clear the
+   real-thickness floor and its toes (this also removes the CAD-thickness tabs
+   between the toes that used to land on them).
 4. **Export** (`export.py`) — union the panels, kerf-compensate (offset the
    solid outward by kerf/2 so the part holds nominal size), emit CUT (red) and
    SCORE/FOLD (blue) on separate layers/colours for LightBurn.
@@ -44,13 +56,15 @@ STEP B-rep ──▶ parse faces+edges ──▶ pick shell ──▶ overlap-aw
 
 Everything tunable lives in `binflatten/params.py` (`FlattenParams`). Highlights:
 material thickness (default 1/8" = 3.175 mm), kerf + compensation, fold mode
-(score / perforate / line-only), perforation dash/gap, fold end relief, shell
-side, root face, layout margin, labels, units.
+(score / perforate / line-only), perforation dash/gap, fold end relief,
+fold-comp + floor-clearance factors (stock-thickness compensation, in units of
+material thickness), shell side, root face, layout margin, labels, units.
 
 ## Known limitations (candidates for rev02+)
 
 - Corner seams between walls are open (no glue tabs yet).
-- Bend allowance is geometric (fold about the shared edge); it does not yet
-  account for 1/8" stock thickness at the folds.
+- Thickness compensation assumes the fold pivots about the intact skin on the
+  inside of the bend (matches measured behaviour for perforated 1/8"
+  cardboard); the factors are parameters — calibrate per material.
 - STL input not yet supported (STEP only — it carries exact topology).
 - Curved edges are chorded (fine here; only tiny fillet faces are curved).

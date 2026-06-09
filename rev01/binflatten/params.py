@@ -53,11 +53,32 @@ class FlattenParams:
     # without binding at the corners (mm, 0 = off).
     fold_end_relief_mm: float = 0.0
 
+    # ----- stock-thickness compensation -------------------------------------
+    # The CAD walls (~1.8 mm) are thinner than the real stock, and a
+    # perforated fold pivots about the intact skin on the inside of the bend,
+    # so an uncompensated bin folds up one stock thickness too tall and two
+    # too wide. Fix: at every fold, remove a strip of width
+    #     fold_comp_factor * material_thickness [* tan(fold_angle/2)]
+    # from EACH side of the fold line; the folded panel (and everything
+    # hinged on it) slides toward its parent to stay attached. 1.0 = full
+    # compensation, 0 = off.
+    fold_comp_factor: float = 1.0
+    # Scale the strip by tan(fold_angle/2) so shallower folds (the ~113°
+    # front corner) remove proportionally less than the 90° floor folds.
+    fold_comp_angle_scaled: bool = True
+    # Panels that do NOT hinge on the floor (the front wall) get their bottom
+    # edge cut floor_clearance_factor * material_thickness above the floor
+    # plane, so they clear the real-thickness floor and its bracket toes
+    # instead of carrying the CAD-thickness tabs that land on the toes.
+    floor_clearance_factor: float = 1.0
+
     # ----- shell selection / geometry --------------------------------------
-    # Which surface of the bin's wall to flatten. "inner" uses the cavity-side
-    # faces, "outer" the outside. They are mirror images; choice mainly affects
-    # which side score lines land on and how notches read.
-    shell: str = "inner"
+    # Which surface of the bin's wall to flatten. "outer" (default) develops
+    # the bin's exterior faces — the right choice for dimensional control
+    # (machine fit, bracket toes) and for folding away from the scored side.
+    # "inner" develops the cavity faces. Note: the thickness-compensation
+    # defaults above assume the outer shell.
+    shell: str = "outer"
     # Pick the flat-pattern root (the panel kept un-rotated, others fold off it).
     #   "largest" : biggest-area panel (usually the floor) — default.
     #   a face id  : force a specific STEP face id as the root.

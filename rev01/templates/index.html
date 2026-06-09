@@ -106,16 +106,28 @@
     </fieldset>
 
     <fieldset>
-      <legend>5 · geometry</legend>
+      <legend>5 · thickness comp</legend>
+      <label><span>fold comp ×t</span><input name="fold_comp_factor" value="{{defaults.fold_comp_factor}}"></label>
+      <div class="hint">strip removed each side of every fold; 1 = one stock thickness, 0 = off</div>
+      <label><span>angle scaled</span>
+        <select name="fold_comp_angle_scaled">
+          <option value="yes">yes (×tan(fold/2))</option><option value="no">no</option>
+        </select></label>
+      <label><span>floor clear ×t</span><input name="floor_clearance_factor" value="{{defaults.floor_clearance_factor}}"></label>
+      <div class="hint">front wall bottom cut this far above the floor plane (clears the toes)</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>6 · geometry</legend>
       <label><span>shell</span>
-        <select name="shell"><option value="inner">inner</option><option value="outer">outer</option></select></label>
+        <select name="shell"><option value="outer">outer</option><option value="inner">inner</option></select></label>
       <label><span>root face</span><input name="root" value="{{defaults.root}}"></label>
       <div class="hint">"largest" = auto floor, or a STEP face id</div>
       <label><span>slab max (mm)</span><input name="slab_max_thickness_mm" value="{{defaults.slab_max_thickness_mm}}"></label>
     </fieldset>
 
     <fieldset>
-      <legend>6 · layout</legend>
+      <legend>7 · layout</legend>
       <label><span>margin (mm)</span><input name="margin_mm" value="{{defaults.margin_mm}}"></label>
       <label><span>labels</span><input type="checkbox" name="add_labels" checked></label>
     </fieldset>

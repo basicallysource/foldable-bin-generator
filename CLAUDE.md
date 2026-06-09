@@ -20,6 +20,20 @@ because the approach is expected to iterate heavily.
   special holder **bracket** on the machine. The toes **stick out past the
   floor's front edge** — like "a box with toes".
 
+### Stock-thickness compensation (learned 2026-06-09)
+
+The CAD wall (~1.8 mm) is thinner than the real 3.175 mm cardboard, and a
+perforated fold pivots about the intact skin on the **inside** of the bend.
+Measured result without compensation: bins fold up **two stock thicknesses too
+wide and one too tall**, and the front wall's between-toe tabs land on the
+toes. rev01 now removes a strip of `thickness · tan(fold/2)` from **each side
+of every fold** and cuts the front wall's bottom edge one thickness above the
+floor plane (`fold_comp_factor` / `floor_clearance_factor` in params, in units
+of material thickness). Also: STEP face normals are not reliably oriented —
+the exterior vs cavity shell is identified by total area (exterior is larger),
+and the **outer shell is the default** (exterior dims are what the machine
+cares about).
+
 ### Critical geometry consequence (learned 2026-06-08)
 
 Because the toes protrude from the floor's front edge, the **front wall cannot
