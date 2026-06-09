@@ -114,7 +114,11 @@ def build_geometry(fp: FlatPattern, params: FlattenParams) -> LaserGeometry:
     width = mx[0] - mn[0] + 2 * params.margin_mm
     height = mx[1] - mn[1] + 2 * params.margin_mm
     warnings = (fp.warnings or []) + warnings
-    return LaserGeometry(cut_loops, score_segments, labels, width, height, warnings)
+    # optional continuous overlay on the same creases (own colour/layer)
+    aux = list(score_segments) if params.overlay_score else None
+    return LaserGeometry(cut_loops, score_segments, labels, width, height,
+                         warnings, aux_segments=aux,
+                         aux_color=params.overlay_color)
 
 
 # --------------------------------------------------------------------------- #
@@ -267,6 +271,11 @@ def to_preview_svg(fp: FlatPattern, geom: LaserGeometry, params: FlattenParams) 
             d = "M " + " L ".join(f"{x:.2f},{y:.2f}" for x, y in loop) + " Z"
             out.append(f'<path d="{d}" fill="none" stroke="{params.cut_color}" '
                        f'stroke-width="0.6"/>')
+    # continuous overlay (under the fold lines so dashes stay readable)
+    for p0, p1 in (geom.aux_segments or []):
+        out.append(f'<line x1="{p0[0]:.2f}" y1="{p0[1]:.2f}" x2="{p1[0]:.2f}" '
+                   f'y2="{p1[1]:.2f}" stroke="{geom.aux_color}" '
+                   f'stroke-width="1.6" stroke-opacity="0.8"/>')
     # score / fold lines
     for p0, p1 in geom.score_segments:
         dash = ' stroke-dasharray="2 1.5"' if params.fold_mode == "perf" else ""

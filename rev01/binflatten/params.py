@@ -52,6 +52,11 @@ class FlattenParams:
     # Optional: shave a relief gap at each end of a fold so thick stock folds
     # without binding at the corners (mm, 0 = off).
     fold_end_relief_mm: float = 0.0
+    # Overlay a CONTINUOUS line (own colour => own LightBurn layer) on every
+    # fold line, same position and length — run a low-power score pass on the
+    # crease in addition to the perforation (same option as the test card).
+    overlay_score: bool = False
+    overlay_color: str = "#00a650"
 
     # ----- stock-thickness compensation -------------------------------------
     # The CAD walls (~1.8 mm) are thinner than the real stock, and a
