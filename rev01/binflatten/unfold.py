@@ -299,13 +299,16 @@ def _add_seam_tabs(fp, model, byid, s, params, transforms, to2d, off2d):
                     pt.centroid = trimmed.mean(0)
             tab_d = params.seam_tab_depth_factor * t
             w = params.seam_tab_width_mm
+            # dovetail: the tab widens toward its tip, wedging into the hollow
+            # corrugation exposed at the slot's end walls as it seats
+            dt = max(0.0, params.seam_tab_dovetail_mm)
             shape = Polygon(pt.poly, pt.holes).buffer(0)
             for k in range(n):
                 c = A0 + (k + 1) / (n + 1) * (A1 - A0) - nrm * trim
                 tab = Polygon([c - u * w / 2 - nrm * 0.2,
                                c + u * w / 2 - nrm * 0.2,
-                               c + u * w / 2 + nrm * tab_d,
-                               c - u * w / 2 + nrm * tab_d])
+                               c + u * (w / 2 + dt) + nrm * tab_d,
+                               c - u * (w / 2 + dt) + nrm * tab_d])
                 shape = shape.union(tab)
             shape = _largest_piece(shape)
             pt.poly = np.array(shape.exterior.coords[:-1])

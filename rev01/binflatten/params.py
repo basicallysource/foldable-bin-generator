@@ -84,6 +84,11 @@ class FlattenParams:
     seam_tab_count: int = 2
     seam_tab_width_mm: float = 12.0
     seam_tab_depth_factor: float = 1.0
+    # Dovetail lock: each tab flares this much WIDER per side at its tip, so
+    # the tip wedges into the hollow corrugation exposed at the slot's end
+    # walls as it seats (the slot itself stays tab-width + clearance). Keep
+    # small — it has to crush into the flutes. 0 = straight tabs.
+    seam_tab_dovetail_mm: float = 0.6
     seam_slot_clearance_mm: float = 0.2   # added to slot length and width
     seam_slot_inset_factor: float = 1.5
     # The CAD's exterior front face runs to the exterior corner, i.e. THROUGH

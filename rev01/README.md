@@ -92,7 +92,9 @@ shell side, root face, layout margin, labels, units.
 - Corner seams: the front wall's free edge is trimmed back one wall thickness
   (the CAD exterior face runs THROUGH the far side wall's slab — uncut it
   overshoots the side wall), then gets experimental tabs that engage
-  through-slots in the far side wall (`seam_tab_count` etc.); the slot inset
+  through-slots in the far side wall (`seam_tab_count` etc.); tab tips flare
+  `seam_tab_dovetail_mm` per side (dovetail) to wedge into the hollow
+  corrugation at the slot ends; the slot inset
   deliberately pulls the front wall a little inside its CAD plane. The
   floor-front seam is still open (the toes live there). No glue tabs yet.
 - Thickness compensation assumes the fold pivots about the intact skin on the
