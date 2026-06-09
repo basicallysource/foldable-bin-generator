@@ -186,6 +186,9 @@
       <label><span>continuous-score column</span><input type="checkbox" name="include_continuous" checked></label>
       <label><span>green solid overlay</span><input type="checkbox" name="overlay_score"></label>
       <div class="hint">adds a continuous green line (own layer) on every perf crease — run score + perf on the same fold</div>
+      <label><span>title line</span><input type="checkbox" name="show_title" checked></label>
+      <label><span>axis legends</span><input type="checkbox" name="show_legends" checked></label>
+      <div class="hint">per-coupon tags always stay; turning these off compacts the card</div>
     </fieldset>
 
     <fieldset>
@@ -203,6 +206,7 @@
       <label><span>stock thickness (mm)</span><input name="material_thickness_mm" value="{{tdefaults.material_thickness_mm}}"></label>
       <label><span>output units</span>
         <select name="output_units"><option value="mm">mm</option><option value="in">in</option></select></label>
+      <label><span>text color</span><input name="label_color" value="{{tdefaults.label_color}}"></label>
       <div class="hint">power/speed are set per layer in LightBurn — this sweeps geometry (dash×gap)</div>
     </fieldset>
 

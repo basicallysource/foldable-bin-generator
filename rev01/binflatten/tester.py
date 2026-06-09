@@ -33,9 +33,9 @@ def build_tester(tp: TesterParams) -> LaserGeometry:
     labels = []           # (text, pos)
 
     pad = tp.score_inset_mm   # 0 => crease runs fully edge-to-edge
-    left_label_w = 16.0
-    top_label_h = 9.0
-    title_h = 11.0
+    left_label_w = 16.0 if tp.show_legends else 0.0
+    top_label_h = 9.0 if tp.show_legends else 0.0
+    title_h = 11.0 if tp.show_title else 0.0
 
     columns = list(tp.gap_values_mm)
     if tp.include_continuous:
@@ -46,23 +46,23 @@ def build_tester(tp: TesterParams) -> LaserGeometry:
     y0 = tp.margin_mm + title_h + top_label_h
     cw, ch, g = tp.coupon_w_mm, tp.coupon_h_mm, tp.gutter_mm
 
-    # title
-    labels.append((
-        f"FOLD / SCORE TEST  -  {tp.material_thickness_mm:.2f} mm stock  -  "
-        f"rows=dash(mm)  cols=gap(mm)",
-        np.array([x0, tp.margin_mm + title_h * 0.5])))
+    if tp.show_title:
+        labels.append((
+            f"FOLD / SCORE TEST  -  {tp.material_thickness_mm:.2f} mm stock  -  "
+            f"rows=dash(mm)  cols=gap(mm)",
+            np.array([x0, tp.margin_mm + title_h * 0.5])))
 
-    # column headers
-    for c, col in enumerate(columns):
-        cx = x0 + c * (cw + g) + cw / 2
-        txt = "score" if col is None else f"gap {col:g}"
-        labels.append((txt, np.array([cx, y0 - 2.5])))
+    if tp.show_legends:
+        for c, col in enumerate(columns):
+            cx = x0 + c * (cw + g) + cw / 2
+            txt = "score" if col is None else f"gap {col:g}"
+            labels.append((txt, np.array([cx, y0 - 2.5])))
 
     for r, dash in enumerate(rows):
         ry = y0 + r * (ch + g)
-        # row header
-        labels.append((f"dash {dash:g}",
-                       np.array([tp.margin_mm + left_label_w / 2, ry + ch / 2])))
+        if tp.show_legends:
+            labels.append((f"dash {dash:g}",
+                           np.array([tp.margin_mm + left_label_w / 2, ry + ch / 2])))
         for c, col in enumerate(columns):
             cx = x0 + c * (cw + g)
             cut_loops.append([_rect(cx, ry, cw, ch)])
@@ -92,8 +92,8 @@ def _flatten_params_for(tp: TesterParams) -> FlattenParams:
     the already-expanded dash segments are drawn literally (not re-dashed)."""
     return FlattenParams(
         output_units=tp.output_units, cut_color=tp.cut_color,
-        score_color=tp.score_color, fold_mode="score",
-        add_labels=True, margin_mm=tp.margin_mm)
+        score_color=tp.score_color, label_color=tp.label_color,
+        fold_mode="score", add_labels=True, margin_mm=tp.margin_mm)
 
 
 def tester_svg(tp: TesterParams) -> str:
@@ -124,7 +124,7 @@ def tester_preview_svg(tp: TesterParams) -> str:
         out.append(f'<line x1="{p0[0]:.2f}" y1="{p0[1]:.2f}" x2="{p1[0]:.2f}" '
                    f'y2="{p1[1]:.2f}" stroke="{tp.score_color}" stroke-width="0.7"/>')
     for text, pos in geom.labels:
-        out.append(f'<text x="{pos[0]:.1f}" y="{pos[1]:.1f}" fill="#9ad" '
+        out.append(f'<text x="{pos[0]:.1f}" y="{pos[1]:.1f}" fill="{tp.label_color}" '
                    f'font-size="3.6" text-anchor="middle" '
                    f'font-family="monospace">{text}</text>')
     out.append('</svg>')

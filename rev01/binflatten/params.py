@@ -118,6 +118,7 @@ class FlattenParams:
     cut_color: str = "#ff0000"          # SVG stroke for cut layer
     score_color: str = "#0000ff"        # SVG stroke for score/fold layer
     add_labels: bool = True             # annotate panels (engrave text)
+    label_color: str = "#00a000"        # SVG fill for label text (own layer)
 
     # ----------------------------------------------------------------------- #
     def to_dict(self) -> dict:
@@ -183,6 +184,12 @@ class TesterParams:
     # run a low-power score pass plus the perforation on one crease.
     overlay_score: bool = False
     overlay_color: str = "#00a650"
+    # Text (engrave) layer colour — distinct from the green overlay above.
+    label_color: str = "#ff9500"
+    # Card chrome: the big title line and the dash/gap axis legends. Turn off
+    # for a compact card / less engrave time (per-coupon tags always stay).
+    show_title: bool = True
+    show_legends: bool = True
 
     def to_dict(self) -> dict:
         return asdict(self)

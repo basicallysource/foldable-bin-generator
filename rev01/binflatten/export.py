@@ -193,7 +193,7 @@ def to_svg(geom: LaserGeometry, params: FlattenParams, title="bin flat pattern")
 
     # labels (engrave) — kept on their own layer so they can be disabled
     if params.add_labels and geom.labels:
-        out.append('<g id="labels" fill="#00a000" '
+        out.append(f'<g id="labels" fill="{params.label_color}" '
                    f'font-size="{4*sc:.3f}" font-family="sans-serif">')
         for text, pos in geom.labels:
             x, y = pos * sc
