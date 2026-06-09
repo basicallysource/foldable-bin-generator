@@ -137,12 +137,36 @@ def _num(tok) -> float:
     return float(tok)
 
 
+def _de_boor(p, ctrl, U, u):
+    """Evaluate a B-spline of degree p at parameter u (de Boor's algorithm)."""
+    n = len(ctrl)
+    # find knot span k such that U[k] <= u < U[k+1]
+    k = p
+    while k < n - 1 and U[k + 1] <= u:
+        k += 1
+    d = [ctrl[j + k - p].astype(float).copy() for j in range(p + 1)]
+    for r in range(1, p + 1):
+        for j in range(p, r - 1, -1):
+            i = j + k - p
+            denom = U[i + p - r + 1] - U[i]
+            a = 0.0 if denom == 0 else (u - U[i]) / denom
+            d[j] = (1 - a) * d[j - 1] + a * d[j]
+    return d[p]
+
+
 @dataclass
 class Edge:
     eid: int
-    v0: np.ndarray  # start vertex (geometric)
-    v1: np.ndarray  # end vertex
+    points: np.ndarray  # Nx3 polyline from start to end (tessellated if curved)
     curve_type: str  # 'LINE', 'CIRCLE', 'B_SPLINE_CURVE_WITH_KNOTS', ...
+
+    @property
+    def v0(self):
+        return self.points[0]
+
+    @property
+    def v1(self):
+        return self.points[-1]
 
 
 @dataclass
@@ -188,17 +212,86 @@ class _Resolver:
         n = np.linalg.norm(v)
         return v / n if n else v
 
+    # angular resolution for tessellating curved edges (degrees per segment)
+    ARC_DEG = 4.0
+
     def edge_curve(self, eid: int) -> Edge:
         if eid in self._cache:
             return self._cache[eid]
         e = self.sf[eid]
-        # EDGE_CURVE('',#v0,#v1,#curve,.T.)
+        # EDGE_CURVE('',#v0,#v1,#curve,.T./.F.)
         v0 = self.point(e.args[1])
         v1 = self.point(e.args[2])
+        same_sense = e.args[4] == ".T."
         curve = self.sf[e.args[3]]
-        edge = Edge(eid, v0, v1, curve.etype)
+        pts = self._curve_points(curve, v0, v1, same_sense)
+        edge = Edge(eid, pts, curve.etype)
         self._cache[eid] = edge
         return edge
+
+    def _curve_points(self, curve, v0, v1, same_sense):
+        """Tessellate an edge's curve into a polyline running v0 -> v1."""
+        t = curve.etype
+        if t == "CIRCLE":
+            place = self.sf[curve.args[1]]
+            c = self.point(place.args[1])
+            z = self.direction(place.args[2])
+            x = self.direction(place.args[3])
+            r = _num(curve.args[2])
+            return self._arc_points(c, x, np.cross(z, x), r, r, v0, v1, same_sense)
+        if t == "ELLIPSE":
+            place = self.sf[curve.args[1]]
+            c = self.point(place.args[1])
+            z = self.direction(place.args[2])
+            x = self.direction(place.args[3])
+            r1 = _num(curve.args[2])
+            r2 = _num(curve.args[3])
+            return self._arc_points(c, x, np.cross(z, x), r1, r2, v0, v1, same_sense)
+        if t == "B_SPLINE_CURVE_WITH_KNOTS":
+            return self._bspline_points(curve, v0, v1)
+        # LINE or anything else -> straight chord
+        return np.array([v0, v1])
+
+    def _arc_points(self, c, xa, ya, r1, r2, v0, v1, same_sense):
+        """Points along a (possibly elliptical) arc from v0 to v1."""
+        xa = xa / (np.linalg.norm(xa) or 1)
+        ya = ya / (np.linalg.norm(ya) or 1)
+
+        def ang(p):
+            d = p - c
+            return np.arctan2(np.dot(d, ya) / (r2 or 1), np.dot(d, xa) / (r1 or 1))
+        a0, a1 = ang(v0), ang(v1)
+        if same_sense:                      # curve runs CCW (increasing angle)
+            while a1 <= a0 + 1e-9:
+                a1 += 2 * np.pi
+        else:                               # CW (decreasing angle)
+            while a1 >= a0 - 1e-9:
+                a1 -= 2 * np.pi
+        n = max(2, int(abs(a1 - a0) / np.radians(self.ARC_DEG)))
+        ts = np.linspace(a0, a1, n + 1)
+        pts = c + np.outer(r1 * np.cos(ts), xa) + np.outer(r2 * np.sin(ts), ya)
+        pts[0], pts[-1] = v0, v1            # snap endpoints exactly
+        return pts
+
+    def _bspline_points(self, curve, v0, v1):
+        """Evaluate a B_SPLINE_CURVE_WITH_KNOTS via de Boor; endpoint-snapped."""
+        degree = int(_num(curve.args[1]))
+        ctrl = np.array([self.point(r) for r in curve.args[2]])
+        mults = [int(_num(m)) for m in curve.args[6]]
+        knots = [_num(k) for k in curve.args[7]]
+        U = []
+        for k, m in zip(knots, mults):
+            U += [k] * m
+        U = np.array(U)
+        u0, u1 = U[degree], U[-degree - 1]
+        n = max(8, len(ctrl) * 6)
+        us = np.linspace(u0, u1, n)
+        pts = np.array([_de_boor(degree, ctrl, U, min(u, u1 - 1e-12)) for u in us])
+        # orient to run v0 -> v1
+        if np.linalg.norm(pts[0] - v0) > np.linalg.norm(pts[0] - v1):
+            pts = pts[::-1]
+        pts[0], pts[-1] = v0, v1
+        return pts
 
     def oriented_edge(self, eid: int):
         """Return (edge, forward_bool). The geometric vertices already match the
@@ -218,10 +311,10 @@ class _Resolver:
         for oe in oe_list:
             edge, fwd = self.oriented_edge(oe)
             edge_ids.add(edge.eid)
-            a, b = (edge.v0, edge.v1) if fwd else (edge.v1, edge.v0)
-            if not pts or not np.allclose(pts[-1], a, atol=1e-9):
-                pts.append(a)
-            pts.append(b)
+            chain = edge.points if fwd else edge.points[::-1]
+            for p in chain:
+                if not pts or not np.allclose(pts[-1], p, atol=1e-9):
+                    pts.append(p)
         # drop closing duplicate
         if len(pts) > 1 and np.allclose(pts[0], pts[-1], atol=1e-9):
             pts = pts[:-1]
