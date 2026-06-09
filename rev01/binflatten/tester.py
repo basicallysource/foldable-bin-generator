@@ -29,6 +29,7 @@ def _rect(x, y, w, h):
 def build_tester(tp: TesterParams) -> LaserGeometry:
     cut_loops = []        # each coupon is its own cut rectangle
     score_segments = []   # pre-expanded dash segments (drawn literally)
+    aux_segments = []     # continuous overlay on perf creases (own layer)
     labels = []           # (text, pos)
 
     pad = tp.score_inset_mm   # 0 => crease runs fully edge-to-edge
@@ -74,12 +75,16 @@ def build_tester(tp: TesterParams) -> LaserGeometry:
             else:
                 for a, b in _perf_dashes(p0, p1, dash, col):
                     score_segments.append((a, b))
+                if tp.overlay_score:
+                    aux_segments.append((p0, p1))        # solid line, same crease
                 tag = f"{dash:g}/{col:g}"
             labels.append((tag, np.array([cx + cw / 2, ymid + ch * 0.30])))
 
     width = x0 + len(columns) * cw + (len(columns) - 1) * g + tp.margin_mm
     height = y0 + len(rows) * ch + (len(rows) - 1) * g + tp.margin_mm
-    return LaserGeometry(cut_loops, score_segments, labels, width, height, [])
+    return LaserGeometry(cut_loops, score_segments, labels, width, height, [],
+                         aux_segments=aux_segments or None,
+                         aux_color=tp.overlay_color)
 
 
 def _flatten_params_for(tp: TesterParams) -> FlattenParams:
@@ -111,6 +116,10 @@ def tester_preview_svg(tp: TesterParams) -> str:
             d = "M " + " L ".join(f"{x:.2f},{y:.2f}" for x, y in loop) + " Z"
             out.append(f'<path d="{d}" fill="#161b22" stroke="{tp.cut_color}" '
                        f'stroke-width="0.5"/>')
+    for p0, p1 in (geom.aux_segments or []):
+        out.append(f'<line x1="{p0[0]:.2f}" y1="{p0[1]:.2f}" x2="{p1[0]:.2f}" '
+                   f'y2="{p1[1]:.2f}" stroke="{geom.aux_color}" stroke-width="1.4" '
+                   f'stroke-opacity="0.8"/>')
     for p0, p1 in geom.score_segments:
         out.append(f'<line x1="{p0[0]:.2f}" y1="{p0[1]:.2f}" x2="{p1[0]:.2f}" '
                    f'y2="{p1[1]:.2f}" stroke="{tp.score_color}" stroke-width="0.7"/>')

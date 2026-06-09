@@ -178,6 +178,11 @@ class TesterParams:
     output_units: str = "mm"
     cut_color: str = "#ff0000"
     score_color: str = "#0000ff"
+    # Overlay a CONTINUOUS score line (own colour => own LightBurn layer) on
+    # top of every perforated fold line, same position and length — lets you
+    # run a low-power score pass plus the perforation on one crease.
+    overlay_score: bool = False
+    overlay_color: str = "#00a650"
 
     def to_dict(self) -> dict:
         return asdict(self)

@@ -34,6 +34,10 @@ class LaserGeometry:
     width: float         # mm
     height: float        # mm
     warnings: list       # list[str]
+    # optional second score layer (e.g. the tester's continuous overlay on
+    # perforated creases), drawn as solid lines in its own colour/layer
+    aux_segments: list | None = None
+    aux_color: str = "#00a650"
 
 
 def _trim_segment(p0, p1, relief):
@@ -177,6 +181,16 @@ def to_svg(geom: LaserGeometry, params: FlattenParams, title="bin flat pattern")
                        f'x2="{b[0]:.4f}" y2="{b[1]:.4f}"/>')
     out.append('</g>')
 
+    # second score layer (solid overlay lines, own colour => own layer)
+    if geom.aux_segments:
+        out.append(f'<g id="score2" stroke="{geom.aux_color}" fill="none" '
+                   f'stroke-width="{sw:.4f}">')
+        for p0, p1 in geom.aux_segments:
+            a, b = p0 * sc, p1 * sc
+            out.append(f'  <line x1="{a[0]:.4f}" y1="{a[1]:.4f}" '
+                       f'x2="{b[0]:.4f}" y2="{b[1]:.4f}"/>')
+        out.append('</g>')
+
     # labels (engrave) — kept on their own layer so they can be disabled
     if params.add_labels and geom.labels:
         out.append('<g id="labels" fill="#00a000" '
@@ -222,6 +236,8 @@ def to_dxf(geom: LaserGeometry, params: FlattenParams) -> str:
                 codes += _dxf_line(a * sc, b * sc, "SCORE")
         else:
             codes += _dxf_line(p0 * sc, p1 * sc, "SCORE")
+    for p0, p1 in (geom.aux_segments or []):
+        codes += _dxf_line(p0 * sc, p1 * sc, "SCORE2")
     codes += ["0", "ENDSEC", "0", "EOF"]
     # DXF is code/value pairs, one per line
     return "\n".join(codes) + "\n"
