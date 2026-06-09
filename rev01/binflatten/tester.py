@@ -31,7 +31,7 @@ def build_tester(tp: TesterParams) -> LaserGeometry:
     score_segments = []   # pre-expanded dash segments (drawn literally)
     labels = []           # (text, pos)
 
-    pad = 5.0             # inset of the fold line from coupon side edges
+    pad = tp.score_inset_mm   # 0 => crease runs fully edge-to-edge
     left_label_w = 16.0
     top_label_h = 9.0
     title_h = 11.0

@@ -119,6 +119,11 @@ class TesterParams:
     coupon_h_mm: float = 42.0         # tall enough to fold by hand
     gutter_mm: float = 8.0
     margin_mm: float = 10.0
+    # How far the fold line stops short of the coupon's side edges. 0 = the
+    # crease runs fully edge-to-edge so the coupon folds across its whole width
+    # (what you want for a fold test). Raise it only if you want an uncreased
+    # margin at the ends.
+    score_inset_mm: float = 0.0
 
     material_thickness_mm: float = 0.125 * MM_PER_INCH  # for the title note
     output_units: str = "mm"
