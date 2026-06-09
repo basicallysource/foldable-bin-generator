@@ -86,6 +86,12 @@ class FlattenParams:
     seam_tab_depth_factor: float = 1.0
     seam_slot_clearance_mm: float = 0.2   # added to slot length and width
     seam_slot_inset_factor: float = 1.5
+    # The CAD's exterior front face runs to the exterior corner, i.e. THROUGH
+    # the side wall's slab; trim the free edge back by
+    # seam_edge_trim_factor * thickness / sin(corner angle) so it stops at the
+    # side wall's inner face instead of overshooting it. Applied even when
+    # seam_tab_count is 0... see _add_seam_tabs.
+    seam_edge_trim_factor: float = 1.0
 
     # ----- shell selection / geometry --------------------------------------
     # Which surface of the bin's wall to flatten. "outer" (default) develops

@@ -15,7 +15,9 @@ import uuid
 from flask import Flask, request, jsonify, render_template, send_file, abort
 
 from binflatten.params import FlattenParams, TesterParams
-from binflatten.pipeline import process
+from binflatten.pipeline import process, load_model
+from binflatten.unfold import unfold
+from binflatten.refold import verify_refold
 from binflatten.export import to_svg, to_dxf, to_preview_svg
 from binflatten.tester import tester_svg, tester_dxf, tester_preview_svg
 
@@ -115,6 +117,25 @@ def process_route():
         svg_url=f"/download/{token}/svg",
         dxf_url=f"/download/{token}/dxf",
     )
+
+
+@app.route("/refold", methods=["POST"])
+def refold_route():
+    """Fold the generated pattern back up in 3D and compare it to the CAD:
+    silhouette overlays, outermost dimensions and a three.js scene."""
+    token = request.form.get("token")
+    path = _resolve(token) if token else None
+    if not path:
+        return jsonify(error="unknown or missing upload token"), 400
+    try:
+        params = _params_from_form(request.form)
+        model = load_model(path)
+        fp = unfold(model, params)
+        rep = verify_refold(model, fp, params)
+        rep["warnings"] = (rep.get("warnings") or []) + (fp.warnings or [])
+    except Exception as e:
+        return jsonify(error=f"{type(e).__name__}: {e}"), 500
+    return jsonify(rep)
 
 
 @app.route("/download/<token>/<kind>")

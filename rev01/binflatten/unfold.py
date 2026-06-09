@@ -153,7 +153,7 @@ def _thickness_compensate(fp, byid, s, params):
         # fp.folds is in placement order, so a panel's hinge fold is processed
         # before any fold where it is the parent and `trans` is ready.
         for f in fp.folds:
-            rot = np.radians(min(f.angle_deg, 180.0 - f.angle_deg))
+            rot = np.radians(max(0.0, 180.0 - f.dihedral_deg))
             c = params.fold_comp_factor * t
             if params.fold_comp_angle_scaled:
                 c *= np.tan(rot / 2.0)
@@ -168,9 +168,10 @@ def _thickness_compensate(fp, byid, s, params):
             p0, p1 = p0 + trans[par], p1 + trans[par]
             d = float(nrm @ p0)
             # parent: a finite strip, not a half-plane — the infinite line
-            # would also shave features far from the hinge (the floor's toes).
+            # would also shave features far from the hinge (the floor's toes),
+            # and extending past the fold ends bites adjacent corners.
             _update(panels[par],
-                    _subtract_strip(panels[par].poly, p0, p1, nrm, c, ext=c),
+                    _subtract_strip(panels[par].poly, p0, p1, nrm, c, ext=0.05),
                     f"fold strip toward #{ch}")
             # child subtree slides 2c toward the parent; child loses its strip
             trans[ch] = trans[par] - 2.0 * c * nrm
@@ -207,6 +208,20 @@ def _thickness_compensate(fp, byid, s, params):
     return trans
 
 
+def _face_wedge_deg(fa, fb, e0, e1):
+    """True dihedral between faces fa/fb at their shared edge e0-e1: the angle
+    between the two surface wings measured at the edge (180 = coplanar/flat).
+    Unlike normal-based angles this is unambiguous — STEP normals here are not
+    consistently oriented."""
+    axis = _unit(np.asarray(e1, float) - np.asarray(e0, float))
+
+    def wing(f):
+        w = f.outer.mean(0) - e0
+        return _unit(w - np.dot(w, axis) * axis)
+
+    return float(np.degrees(np.arccos(np.clip(np.dot(wing(fa), wing(fb)), -1, 1))))
+
+
 def _merged_shared_edge(model, fa, fb):
     """Full extent of all edges shared by faces fa/fb (model units), or None."""
     pts = []
@@ -238,7 +253,7 @@ def _add_seam_tabs(fp, model, byid, s, params, transforms, to2d, off2d):
     """
     n = int(params.seam_tab_count)
     t = params.material_thickness_mm
-    if n <= 0 or t <= 0:
+    if t <= 0 or (n <= 0 and params.seam_edge_trim_factor <= 0):
         return
     panels = {p.fid: p for p in fp.panels}
     joined = {(f.panel_a, f.panel_b) for f in fp.folds}
@@ -260,21 +275,33 @@ def _add_seam_tabs(fp, model, byid, s, params, transforms, to2d, off2d):
             if seam is None:
                 continue
             E0, E1 = seam[0] * s, seam[1] * s
+            wedge = _face_wedge_deg(byid[a], byid[b], seam[0], seam[1])
             tab_fid, slot_fid = ((a, b) if depth.get(a, 99) >= depth.get(b, 99)
                                  else (b, a))
 
             # --- tabs on the free wall ---------------------------------- #
+            # The CAD's exterior face runs all the way to the exterior corner,
+            # i.e. THROUGH the other wall's slab — trim the free edge back so
+            # it stops at that wall's INNER face, then let the tabs bridge the
+            # slab thickness and end flush with its outside face.
             pt = panels[tab_fid]
             A0, A1 = map2(tab_fid, E0), map2(tab_fid, E1)
             u = _unit(A1 - A0)
             nrm = np.array([-u[1], u[0]])
             if np.dot(pt.centroid - (A0 + A1) / 2, nrm) > 0:
                 nrm = -nrm                  # outward, away from the panel
+            trim = (params.seam_edge_trim_factor * t /
+                    max(np.sin(np.radians(wedge)), 0.2))
+            if trim > 0:
+                trimmed = _subtract_strip(pt.poly, A0, A1, nrm, trim, ext=0.05)
+                if trimmed is not None and len(trimmed) >= 3:
+                    pt.poly = trimmed
+                    pt.centroid = trimmed.mean(0)
             tab_d = params.seam_tab_depth_factor * t
             w = params.seam_tab_width_mm
             shape = Polygon(pt.poly, pt.holes).buffer(0)
             for k in range(n):
-                c = A0 + (k + 1) / (n + 1) * (A1 - A0)
+                c = A0 + (k + 1) / (n + 1) * (A1 - A0) - nrm * trim
                 tab = Polygon([c - u * w / 2 - nrm * 0.2,
                                c + u * w / 2 - nrm * 0.2,
                                c + u * w / 2 + nrm * tab_d,
@@ -326,9 +353,10 @@ class Panel2D:
 class FoldLine:
     p0: np.ndarray          # 2D
     p1: np.ndarray          # 2D
-    angle_deg: float        # dihedral fold angle (180 - interior)
+    angle_deg: float        # display angle (180 - normals angle, sign-ambiguous)
     panel_a: int
     panel_b: int
+    dihedral_deg: float = 90.0  # true CAD wedge angle at the edge (180 = flat)
 
 
 @dataclass
@@ -339,6 +367,10 @@ class FlatPattern:
     # bookkeeping / diagnostics
     shell_face_ids: list = field(default_factory=list)
     root_fid: int | None = None
+    # sheet frame: maps final 2D pattern coords back onto the root plane in
+    # CAD space (origin/u/v/n in mm, n = inward normal; shift = final 2D
+    # margin shift). Filled by unfold(); consumed by refold.py.
+    frame: dict = field(default_factory=dict)
 
     def bounds(self):
         allp = np.vstack([p.poly for p in self.panels])
@@ -571,10 +603,14 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
         if is_fold:
             dih = np.degrees(np.arccos(np.clip(
                 abs(np.dot(_unit(byid[fid].normal), _unit(byid[parent].normal))), -1, 1)))
+            seg = next(((s0, s1) for (g, s0, s1) in adj[fid] if g == parent), None)
+            wedge = (_face_wedge_deg(byid[parent], byid[fid], seg[0], seg[1])
+                     if seg is not None else 180.0 - dih)
             e2 = to2d(np.vstack([E0, E1]))
             fp.folds.append(FoldLine(p0=e2[0], p1=e2[1],
                                      angle_deg=180 - dih,
-                                     panel_a=parent, panel_b=fid))
+                                     panel_a=parent, panel_b=fid,
+                                     dihedral_deg=wedge))
         remaining.discard(fid)
 
     # real-stock thickness compensation (fold strips + floor clearance)
@@ -595,5 +631,14 @@ def unfold(model: Model, params: FlattenParams) -> FlatPattern:
     for f in fp.folds:
         f.p0 = f.p0 + shift
         f.p1 = f.p1 + shift
+
+    # sheet frame for refold verification (refold.py): final 2D coords x map
+    # onto the root plane in CAD space via origin + ((x - shift)/scale)·(u,v).
+    wall_h = [(f.outer * s - origin) @ n_root for f in shell
+              if f.fid != root]
+    n_in = n_root if (wall_h and np.concatenate(wall_h).mean() >= 0) else -n_root
+    fp.frame = dict(origin=origin, u=u, v=v, n=n_in, scale=params.scale,
+                    shift=shift,
+                    cad_centroid={f.fid: f.outer.mean(0) * s for f in shell})
 
     return fp

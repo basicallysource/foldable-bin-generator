@@ -71,6 +71,15 @@ A local Python web app: upload a bin STEP, tune parameters, preview the flat net
 `STEP → parse → pick shell → overlap-aware unfold → kerf + score → SVG/DXF`.
 See `rev01/README.md` for the module map and limitations.
 
+**Verify before cutting**: `rev01/verify.py` re-folds the generated pattern in
+3D (same crease model as the compensation) and compares silhouettes +
+outermost dimensions against the STEP — run it after any geometry change
+(`python verify.py <step> --out outputs/verify`; exit 1 = dimension off by
+more than tol). The web UI has the same check ("refold check" button: 3D
+view + overlay images + dimension table). One known physical deviation: the
+leaning front wall's raised bottom edge costs ~1 mm of ground-level front
+extent.
+
 Run: `cd rev01 && python app.py` → http://127.0.0.1:5000
 
 ## Conventions

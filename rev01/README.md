@@ -52,6 +52,32 @@ STEP B-rep ──▶ parse faces+edges ──▶ pick shell ──▶ overlap-aw
    solid outward by kerf/2 so the part holds nominal size), emit CUT (red) and
    SCORE/FOLD (blue) on separate layers/colours for LightBurn.
 
+## Refold verification
+
+The fold-up is simulated and checked against the CAD, so you don't have to
+cut cardboard to find a geometry bug:
+
+* **Web UI**: press **refold check** after flattening — folded 3D view
+  (three.js, internet needed for the CDN), silhouette overlays (green = CAD,
+  red = refold) and the outermost-dimension table work per uploaded STEP.
+* **CLI** (what an agent / CI can run):
+
+  ```bash
+  python verify.py "../steps/0_bins - bin_third_left.step" --out outputs/verify \
+      --set fold_comp_factor=1.0
+  ```
+
+  writes `view_*.svg` overlays + `metrics.json`, prints IoU / dimension
+  diffs, exit code 1 if any outer dimension deviates more than `--tol`
+  (default 1.5 mm).
+
+The simulator uses the same crease model the compensation assumes (pivot
+`fold_comp_factor·t` above the plotted face, panels = slabs one stock
+thickness deep, folded to the true CAD dihedral, crease wedges filling the
+corners). Known, physical deviation: a leaning front wall whose bottom edge
+sits one stock thickness up (on the real floor/toes) pulls the ground-level
+front extent back ~1 mm vs CAD.
+
 ## Parameters
 
 Everything tunable lives in `binflatten/params.py` (`FlattenParams`). Highlights:
@@ -63,9 +89,11 @@ shell side, root face, layout margin, labels, units.
 
 ## Known limitations (candidates for rev02+)
 
-- Corner seams: the front wall's free edge now gets experimental tabs that
-  engage through-slots in the far side wall (`seam_tab_count` etc.); the slot
-  inset deliberately pulls the front wall a little inside its CAD plane. The
+- Corner seams: the front wall's free edge is trimmed back one wall thickness
+  (the CAD exterior face runs THROUGH the far side wall's slab — uncut it
+  overshoots the side wall), then gets experimental tabs that engage
+  through-slots in the far side wall (`seam_tab_count` etc.); the slot inset
+  deliberately pulls the front wall a little inside its CAD plane. The
   floor-front seam is still open (the toes live there). No glue tabs yet.
 - Thickness compensation assumes the fold pivots about the intact skin on the
   inside of the bend (matches measured behaviour for perforated 1/8"
