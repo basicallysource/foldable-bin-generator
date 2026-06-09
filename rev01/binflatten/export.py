@@ -87,7 +87,7 @@ def _settings_entries(fp, params: FlattenParams) -> list:
         return []
     cen = Polygon(floor.poly).centroid
     lines = settings_label_lines(params)
-    line_h = 5.0
+    line_h = params.label_font_mm * 1.6
     top = cen.y - (len(lines) - 1) * line_h / 2.0
     return [(txt, np.array([cen.x, top + i * line_h]))
             for i, txt in enumerate(lines)]
@@ -243,7 +243,8 @@ def to_svg(geom: LaserGeometry, params: FlattenParams, title="bin flat pattern")
     # (panel tags by add_labels, settings line by add_settings_label)
     if geom.labels:
         out.append(f'<g id="labels" fill="{params.label_color}" '
-                   f'font-size="{4*sc:.3f}" font-family="sans-serif">')
+                   f'font-size="{params.label_font_mm*sc:.3f}" '
+                   f'font-family="sans-serif">')
         for text, pos in geom.labels:
             x, y = pos * sc
             out.append(f'  <text x="{x:.3f}" y="{y:.3f}" '
@@ -340,7 +341,8 @@ def to_preview_svg(fp: FlatPattern, geom: LaserGeometry, params: FlattenParams) 
     if params.add_settings_label:
         for txt, pos in _settings_entries(fp, params):
             out.append(f'<text x="{pos[0]:.1f}" y="{pos[1]:.1f}" '
-                       f'fill="{params.label_color}" font-size="4" '
+                       f'fill="{params.label_color}" '
+                       f'font-size="{params.label_font_mm:g}" '
                        f'text-anchor="middle">{txt}</text>')
     out.append('</svg>')
     return "\n".join(out)

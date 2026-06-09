@@ -132,6 +132,9 @@ class FlattenParams:
     part_name: str = ""
     # Text layer colour — orange, distinct from cut/score/overlay layers.
     label_color: str = "#ff9500"
+    # Engraved text size (mm). Settings-block lines are spaced 1.6x this so
+    # ascenders/descenders of adjacent lines cannot overlap.
+    label_font_mm: float = 4.0
 
     # ----------------------------------------------------------------------- #
     def to_dict(self) -> dict:
