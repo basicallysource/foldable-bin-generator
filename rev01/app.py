@@ -14,9 +14,10 @@ import uuid
 
 from flask import Flask, request, jsonify, render_template, send_file, abort
 
-from binflatten.params import FlattenParams
+from binflatten.params import FlattenParams, TesterParams
 from binflatten.pipeline import process
 from binflatten.export import to_svg, to_dxf, to_preview_svg
+from binflatten.tester import tester_svg, tester_dxf, tester_preview_svg
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 UPLOADS = os.path.join(HERE, "outputs", "uploads")
@@ -33,8 +34,31 @@ def _params_from_form(form) -> FlattenParams:
 
 @app.route("/")
 def index():
+    tdef = TesterParams().to_dict()
+    tdef["dash_values_mm"] = ", ".join(f"{x:g}" for x in tdef["dash_values_mm"])
+    tdef["gap_values_mm"] = ", ".join(f"{x:g}" for x in tdef["gap_values_mm"])
     return render_template("index.html",
-                           defaults=FlattenParams().to_dict())
+                           defaults=FlattenParams().to_dict(),
+                           tdefaults=tdef)
+
+
+@app.route("/tester", methods=["POST"])
+def tester_route():
+    try:
+        tp = TesterParams.from_dict(request.form.to_dict())
+        preview = tester_preview_svg(tp)
+        token = "tester_" + uuid.uuid4().hex
+        base = os.path.join(UPLOADS, token)
+        with open(base + ".svg", "w") as f:
+            f.write(tester_svg(tp))
+        with open(base + ".dxf", "w") as f:
+            f.write(tester_dxf(tp))
+    except Exception as e:
+        return jsonify(error=f"{type(e).__name__}: {e}"), 500
+    n_cells = len(tp.dash_values_mm) * (len(tp.gap_values_mm) + (1 if tp.include_continuous else 0))
+    return jsonify(preview=preview, n_cells=n_cells,
+                   svg_url=f"/download/{token}/svg",
+                   dxf_url=f"/download/{token}/dxf")
 
 
 @app.route("/upload", methods=["POST"])

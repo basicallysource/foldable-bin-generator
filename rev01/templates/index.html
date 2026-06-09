@@ -16,6 +16,10 @@
          display:flex;align-items:baseline;gap:12px}
   header h1{font-size:16px;margin:0;letter-spacing:.5px}
   header .tag{color:var(--muted);font-size:12px}
+  nav.tabs{margin-left:auto;display:flex;gap:4px}
+  .tab{background:transparent;color:var(--muted);border:1px solid var(--line);
+       border-radius:6px;padding:5px 12px;cursor:pointer;font:inherit}
+  .tab.active{background:var(--panel);color:var(--ink);border-color:var(--accent)}
   .wrap{display:grid;grid-template-columns:340px 1fr;gap:0;height:calc(100vh - 51px)}
   .controls{overflow-y:auto;border-right:1px solid var(--line);padding:16px}
   .stage{position:relative;display:flex;flex-direction:column}
@@ -53,9 +57,15 @@
 </head>
 <body>
 <header>
-  <h1>binflatten</h1><span class="tag">rev01 · STEP → flat laser net</span>
+  <h1>binflatten</h1><span class="tag">rev01</span>
+  <nav class="tabs">
+    <button class="tab active" data-tab="flatten">flatten bin</button>
+    <button class="tab" data-tab="tester">fold tester</button>
+  </nav>
 </header>
-<div class="wrap">
+
+<!-- ============================ FLATTEN TAB ============================ -->
+<div class="wrap tabpane" id="pane-flatten">
   <form class="controls" id="form" onsubmit="return false">
     <fieldset>
       <legend>1 · model</legend>
@@ -127,6 +137,52 @@
   </div>
 </div>
 
+<!-- ============================ TESTER TAB ============================ -->
+<div class="wrap tabpane" id="pane-tester" style="display:none">
+  <form class="controls" id="tform" onsubmit="return false">
+    <fieldset>
+      <legend>fold / score sweep</legend>
+      <label><span>dash lengths (mm)</span></label>
+      <input name="dash_values_mm" value="{{tdefaults.dash_values_mm}}" style="width:100%;text-align:left">
+      <label><span>gap lengths (mm)</span></label>
+      <input name="gap_values_mm" value="{{tdefaults.gap_values_mm}}" style="width:100%;text-align:left">
+      <div class="hint">rows = dash · cols = gap · one coupon per combo</div>
+      <label><span>continuous-score column</span><input type="checkbox" name="include_continuous" checked></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>coupon</legend>
+      <label><span>width (mm)</span><input name="coupon_w_mm" value="{{tdefaults.coupon_w_mm}}"></label>
+      <label><span>height (mm)</span><input name="coupon_h_mm" value="{{tdefaults.coupon_h_mm}}"></label>
+      <label><span>gutter (mm)</span><input name="gutter_mm" value="{{tdefaults.gutter_mm}}"></label>
+      <label><span>margin (mm)</span><input name="margin_mm" value="{{tdefaults.margin_mm}}"></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>context</legend>
+      <label><span>stock thickness (mm)</span><input name="material_thickness_mm" value="{{tdefaults.material_thickness_mm}}"></label>
+      <label><span>output units</span>
+        <select name="output_units"><option value="mm">mm</option><option value="in">in</option></select></label>
+      <div class="hint">power/speed are set per layer in LightBurn — this sweeps geometry (dash×gap)</div>
+    </fieldset>
+
+    <button type="button" id="genTest" style="width:100%">generate card ▸</button>
+  </form>
+
+  <div class="stage">
+    <div class="view" id="tview">
+      <div style="color:var(--muted)">press <b>generate card</b> for a fold-test grid</div>
+    </div>
+    <div class="bar">
+      <span id="tstatus"></span>
+      <span id="tdims"></span>
+      <span><span class="swatch" style="background:var(--cut)"></span>cut</span>
+      <span><span class="swatch" style="background:var(--score)"></span>fold/score</span>
+      <span id="tdl"></span>
+    </div>
+  </div>
+</div>
+
 <script>
 let token = null;
 const $ = s => document.querySelector(s);
@@ -171,6 +227,30 @@ async function flatten(){
     setStatus('⚠ '+j.warnings.join(' · '),'warn');
   } else { setStatus('done ✓','accent'); }
 }
+
+// ---- tab switching ----
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  const which = t.dataset.tab;
+  $('#pane-flatten').style.display = which==='flatten' ? '' : 'none';
+  $('#pane-tester').style.display  = which==='tester'  ? '' : 'none';
+});
+
+// ---- fold tester ----
+$('#genTest').onclick = async () => {
+  const fd = new FormData($('#tform'));
+  for(const cb of $('#tform').querySelectorAll('input[type=checkbox]'))
+    fd.set(cb.name, cb.checked ? 'true':'false');
+  const s = $('#tstatus'); s.textContent='generating…'; s.className='';
+  const r = await fetch('/tester',{method:'POST',body:fd});
+  const j = await r.json();
+  if(j.error){ s.textContent=j.error; s.className='err'; $('#tview').innerHTML=''; return; }
+  $('#tview').innerHTML = j.preview;
+  $('#tdims').textContent = `${j.n_cells} coupons`;
+  $('#tdl').innerHTML = `<a class="dl" href="${j.svg_url}">⬇ svg</a> <a class="dl" href="${j.dxf_url}">⬇ dxf</a>`;
+  s.textContent='done ✓'; s.className='accent';
+};
 </script>
 </body>
 </html>

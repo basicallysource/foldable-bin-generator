@@ -9,7 +9,7 @@ chosen for 1/8" cardboard on a typical diode/CO2 laser in LightBurn.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict, fields
+from dataclasses import dataclass, asdict, fields, field
 
 
 MM_PER_INCH = 25.4
@@ -88,6 +88,58 @@ class FlattenParams:
             if cur in ("float", float):
                 clean[k] = float(v)
             elif cur in ("bool", bool):
+                clean[k] = str(v).lower() in ("1", "true", "on", "yes")
+            else:
+                clean[k] = v
+        return cls(**clean)
+
+
+def _parse_floats(s):
+    """'1, 2, 3.5' -> [1.0, 2.0, 3.5]; passes through real lists."""
+    if isinstance(s, (list, tuple)):
+        return [float(x) for x in s]
+    return [float(x) for x in str(s).replace(";", ",").split(",") if x.strip()]
+
+
+@dataclass
+class TesterParams:
+    """Parameters for the fold/score test card (a laser-material-test analog).
+
+    The card is a grid of small foldable coupons. Each coupon has a fold line
+    rendered with a particular perforation pattern: rows sweep dash length,
+    columns sweep gap length. A final 'score' column is a continuous (un-perfed)
+    score line for reference. Cut and fold one chip per setting, fold it, and
+    keep whichever creases cleanly in your 1/8" cardboard.
+    """
+    dash_values_mm: list = field(default_factory=lambda: [1.0, 2.0, 3.0, 5.0])
+    gap_values_mm: list = field(default_factory=lambda: [0.5, 1.0, 1.5, 2.0])
+    include_continuous: bool = True   # add a continuous-score reference column
+
+    coupon_w_mm: float = 32.0
+    coupon_h_mm: float = 42.0         # tall enough to fold by hand
+    gutter_mm: float = 8.0
+    margin_mm: float = 10.0
+
+    material_thickness_mm: float = 0.125 * MM_PER_INCH  # for the title note
+    output_units: str = "mm"
+    cut_color: str = "#ff0000"
+    score_color: str = "#0000ff"
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "TesterParams":
+        known = {f.name for f in fields(cls)}
+        clean = {}
+        for k, v in d.items():
+            if k not in known:
+                continue
+            if k in ("dash_values_mm", "gap_values_mm"):
+                clean[k] = _parse_floats(v)
+            elif cls.__dataclass_fields__[k].type in ("float", float):
+                clean[k] = float(v)
+            elif cls.__dataclass_fields__[k].type in ("bool", bool):
                 clean[k] = str(v).lower() in ("1", "true", "on", "yes")
             else:
                 clean[k] = v
