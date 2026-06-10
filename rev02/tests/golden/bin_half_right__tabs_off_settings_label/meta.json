@@ -1,5 +1,5 @@
 {
- "height": 390.35,
+ "height": 387.39,
  "kind": "process",
  "n_folds": 3,
  "n_panels": 4,
@@ -9,14 +9,14 @@
   "label_font_mm": "3",
   "seam_tab_count": "0"
  },
- "root": 871,
+ "root": 751,
  "shell_face_ids": [
-  871,
-  878,
-  895,
-  910
+  751,
+  752,
+  753,
+  760
  ],
  "step": "public/bins/bin_half_right.step",
  "warnings": [],
- "width": 404.02
+ "width": 408.44
 }

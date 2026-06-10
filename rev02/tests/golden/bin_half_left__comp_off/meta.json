@@ -1,5 +1,5 @@
 {
- "height": 452.04,
+ "height": 397.48,
  "kind": "process",
  "n_folds": 3,
  "n_panels": 4,
@@ -8,14 +8,14 @@
   "fold_comp_angle_scaled": "no",
   "fold_comp_factor": "0"
  },
- "root": 871,
+ "root": 751,
  "shell_face_ids": [
-  871,
-  904,
-  908,
-  910
+  751,
+  752,
+  753,
+  783
  ],
  "step": "public/bins/bin_half_left.step",
  "warnings": [],
- "width": 345.2
+ "width": 424.4
 }
