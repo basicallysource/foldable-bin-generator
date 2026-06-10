@@ -80,8 +80,11 @@ The engine encodes hard-won fold/kerf/compensation behaviour. Follow
   ~1.8 mm wall — that's just the model). Treated as a parameter.
 - Output goes into **LightBurn**: SVG + DXF with **CUT (red)**,
   **SCORE/FOLD (blue)** and optional **overlay (green)** layers.
-- Calibrated defaults (2026-06-09): perforate dash 3 / gap 3 + continuous
+- Calibrated defaults (2026-06-09): perforate dash 5 / gap 5 + continuous
   green overlay scored on the same crease.
+- The UI applies per-file default overrides on top of the global defaults
+  when a model is picked (`FILE_DEFAULT_OVERRIDES` in `lib/api.ts`, keyed by
+  lower-case file name) — e.g. the half bins default to 3 corner tabs.
 - "Everything that can affect a successful laser job is a parameter" — see
   `api/_lib/binflatten/params.py`.
 

@@ -18,6 +18,7 @@ import {
   ProcessResult,
   RefoldReport,
   TesterResult,
+  defaultOverridesFor,
   downloadText,
   getDefaults,
   loadBuiltinBin,
@@ -59,11 +60,14 @@ export default function Page() {
   const [refold, setRefold] = useState<RefoldReport | null>(null);
   const refoldKey = useRef<string>("");
   const seq = useRef(0);
+  const flattenDefaults = useRef<FormValues>({}); // global defaults, for reverts
+  const activeOverrides = useRef<FormValues>({}); // current file's overrides
 
   useEffect(() => {
     getDefaults()
       .then((d: Defaults) => {
-        flatten.setValues(toFormValues(d.flatten));
+        flattenDefaults.current = toFormValues(d.flatten);
+        flatten.setValues(flattenDefaults.current);
         tester.setValues(toFormValues(d.tester));
         setReady(true);
       })
@@ -71,15 +75,28 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pick = useCallback((f: File | undefined | null) => {
-    if (!f) return;
-    if (!/\.(step|stp)$/i.test(f.name)) {
-      setStatus({ msg: `unsupported '${f.name}' — needs a .step/.stp`, cls: "status-err" });
-      return;
-    }
-    setFile(f);
-    setStatus({ msg: `loaded ${f.name}`, cls: "" });
-  }, []);
+  const pick = useCallback(
+    (f: File | undefined | null) => {
+      if (!f) return;
+      if (!/\.(step|stp)$/i.test(f.name)) {
+        setStatus({ msg: `unsupported '${f.name}' — needs a .step/.stp`, cls: "status-err" });
+        return;
+      }
+      // per-file defaults: revert the previous file's overridden fields to the
+      // global defaults, then apply this file's overrides on top
+      const ov = defaultOverridesFor(f.name);
+      flatten.setValues((p) => {
+        const next = { ...p };
+        for (const k of Object.keys(activeOverrides.current))
+          if (!(k in ov) && k in flattenDefaults.current) next[k] = flattenDefaults.current[k];
+        return { ...next, ...ov };
+      });
+      activeOverrides.current = ov;
+      setFile(f);
+      setStatus({ msg: `loaded ${f.name}`, cls: "" });
+    },
+    [flatten.setValues]
+  );
 
   // ---- automatic flatten: model picked or any parameter touched ----------
   useEffect(() => {

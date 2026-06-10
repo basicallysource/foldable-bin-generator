@@ -111,6 +111,20 @@ export const BUILTIN_BINS = [
   "bin_third_right.step",
 ];
 
+/** Per-file default parameter overrides. When a model with one of these file
+    names is picked (built-in or user upload), the listed values replace the
+    global defaults for that file; every other field keeps its current value.
+    Switching to a file without an override reverts the field to the global
+    default. Keys are lower-case file names. */
+export const FILE_DEFAULT_OVERRIDES: Record<string, FormValues> = {
+  // half bins: 3 corner tabs instead of the global default
+  "bin_half_left.step": { seam_tab_count: "3" },
+  "bin_half_right.step": { seam_tab_count: "3" },
+};
+
+export const defaultOverridesFor = (name: string): FormValues =>
+  FILE_DEFAULT_OVERRIDES[name.toLowerCase()] ?? {};
+
 export async function loadBuiltinBin(name: string): Promise<File> {
   const r = await fetch(`/bins/${name}`);
   if (!r.ok) throw new Error(`could not load built-in ${name}`);

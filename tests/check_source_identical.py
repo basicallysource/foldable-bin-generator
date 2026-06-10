@@ -28,7 +28,7 @@ REFERENCE = os.path.join(REV02, "binflatten")
 FROZEN_MANIFEST = {
     "__init__.py": "66f07cc696b162bedddd2108a535b29e92ac7e8f379f638c879e5d673009a850",
     "export.py": "6c25aaef55146cda9bc60b4a055d1774b903f3d4397c82a506dafd9c3010cb37",
-    "params.py": "e5892159f7490b50d78611cf2530aab38295959138d61c4e874e702f04865523",
+    "params.py": "0b4d233e85717f760d48a0e3e283a8d817776c5eacdcfb471ca6b07a56a890e4",
     "pipeline.py": "264cf8bb28c6daa862af78ffde5f40224de02d38fc22218cbd84f008f73f65c7",
     "refold.py": "109d0bc145e56c8917ea61e7b20efbad15ba71c6b2cbab1dc1ddcacb92cd33a0",
     "step_io.py": "48a0356f495bee5fbdb2cdd861e78c5888116aa0e06436dfe75451ad13372531",

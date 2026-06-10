@@ -46,10 +46,10 @@ class FlattenParams:
     #   "none"    : emit fold lines on their own layer but leave treatment to
     #               the user in LightBurn.
     fold_mode: str = "perf"
-    # For "perf": dash + gap length along the fold (mm). 3/3 + the continuous
+    # For "perf": dash + gap length along the fold (mm). 5/5 + the continuous
     # overlay below is the calibrated combo for 1/8" cardboard (2026-06-09).
-    perf_dash_mm: float = 3.0
-    perf_gap_mm: float = 3.0
+    perf_dash_mm: float = 5.0
+    perf_gap_mm: float = 5.0
     # Optional: shave a relief gap at each end of a fold so thick stock folds
     # without binding at the corners (mm, 0 = off).
     fold_end_relief_mm: float = 0.0
@@ -94,7 +94,7 @@ class FlattenParams:
     # the tip wedges into the hollow corrugation exposed at the slot's end
     # walls as it seats (the slot itself stays tab-width + clearance). Keep
     # small — it has to crush into the flutes. 0 = straight tabs.
-    seam_tab_dovetail_mm: float = 0.6
+    seam_tab_dovetail_mm: float = 0.75
     seam_slot_clearance_mm: float = 0.2   # added to slot length and width
     seam_slot_inset_factor: float = 1.5
     # The CAD's exterior front face runs to the exterior corner, i.e. THROUGH
