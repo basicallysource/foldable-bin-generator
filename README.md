@@ -4,7 +4,7 @@ Turn a bin's CAD (STEP B-rep) into a single, foldable, laser-cuttable flat
 pattern (SVG + DXF) for LightBurn — laser one piece of 1/8" cardboard and
 fold it up into a sorting-machine bin.
 
-Live: **https://rev02-lyart.vercel.app** — pushes to `main` auto-deploy.
+Live: **https://foldable-bin-generator.vercel.app** — pushes to `main` auto-deploy.
 
 ```
 app/, components/, lib/   Next.js UI (flatten, refold check, fold tester)
@@ -40,7 +40,7 @@ public/bins/<bin>.step`), regenerate the golden corpus
 ```bash
 python tests/check_source_identical.py   # engine untouched? (sha256)
 python tests/check_equivalence.py        # 48-case corpus, byte-equal locally
-python tests/check_deployed.py https://rev02-lyart.vercel.app
+python tests/check_deployed.py https://foldable-bin-generator.vercel.app
 ```
 
 Known physical deviation: the leaning front wall's raised bottom edge costs

@@ -3,7 +3,7 @@
 Web app that converts bin CAD (STEP) into laser-cuttable foldable flat
 patterns for a LEGO sorting machine. Next.js UI + Python geometry engine,
 deployed on Vercel (pushes to `main` auto-deploy to
-https://rev02-lyart.vercel.app).
+https://foldable-bin-generator.vercel.app).
 
 ## The machine & bins (domain context)
 

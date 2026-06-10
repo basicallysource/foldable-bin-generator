@@ -86,7 +86,7 @@ regenerated, manifest updated):
    0.1 µm `simplify`. (A 13 nm debris vertex can still survive on one build —
    that's what the `ok@` tier is for.)
 
-Result on 2026-06-09 against https://rev02-lyart.vercel.app:
+Result on 2026-06-09 against https://foldable-bin-generator.vercel.app:
 **57/57 pass — 14 `ok=`, 42 `ok~`, 1 `ok@`** — plus the headless-browser
 end-to-end test against the live site (flatten → preview → downloads →
 refold table/3D → tester card) with numbers identical to local.
