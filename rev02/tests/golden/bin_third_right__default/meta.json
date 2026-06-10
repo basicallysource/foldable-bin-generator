@@ -1,0 +1,16 @@
+{
+ "height": 212.15,
+ "kind": "process",
+ "n_folds": 2,
+ "n_panels": 3,
+ "params": {},
+ "root": 282,
+ "shell_face_ids": [
+  281,
+  282,
+  283
+ ],
+ "step": "public/bins/bin_third_right.step",
+ "warnings": [],
+ "width": 300.73
+}

@@ -1,0 +1,23 @@
+{
+ "height": 439.62,
+ "kind": "process",
+ "n_folds": 3,
+ "n_panels": 4,
+ "params": {
+  "fold_end_relief_mm": "2",
+  "fold_mode": "perf",
+  "overlay_score": "true",
+  "perf_dash_mm": "3",
+  "perf_gap_mm": "0.5"
+ },
+ "root": 871,
+ "shell_face_ids": [
+  871,
+  904,
+  908,
+  910
+ ],
+ "step": "public/bins/bin_half_left.step",
+ "warnings": [],
+ "width": 333.07
+}

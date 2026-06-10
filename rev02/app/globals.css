@@ -1,0 +1,286 @@
+/* binflatten rev02 — machine-shop HUD.
+   Dark graphite-blue terminal, laser-amber action color, blueprint-grid
+   stage. Cut/score/overlay colors stay semantic (red/blue/green) because
+   they mirror the LightBurn layers. */
+
+:root {
+  --bg: #07090d;
+  --bg-deep: #04060a;
+  --panel: #0d1219;
+  --line: #1c2533;
+  --line-bright: #2c3a4f;
+  --ink: #d9e2ec;
+  --muted: #7d8896;
+  --faint: #56606d;
+  --amber: #ffb000;
+  --amber-dim: #b87f0a;
+  --ok: #46c75c;
+  --warn: #e3b341;
+  --cut: #ff5252;
+  --score: #5b8dff;
+  --overlay: #00a650;
+  --mono: var(--font-plex), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.5 var(--mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--amber); color: #1a1200; }
+
+/* ---------- chrome ---------- */
+
+.frame { display: flex; flex-direction: column; height: 100vh; }
+
+header.bar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 18px; height: 52px; flex: none;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, #0e141d 0%, #0a0f16 100%);
+}
+.brand { display: flex; align-items: baseline; gap: 9px; }
+.brand h1 {
+  margin: 0; font-size: 15px; font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase;
+}
+.brand h1 .dim { color: var(--faint); }
+.subtitle { color: var(--faint); font-size: 11px; letter-spacing: 0.04em; }
+
+nav.tabs { margin-left: auto; display: flex; gap: 6px; }
+.tab {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 6px 14px; cursor: pointer; font: inherit; font-size: 12px;
+  letter-spacing: 0.06em; transition: color .15s, border-color .15s;
+}
+.tab:hover { color: var(--ink); border-color: var(--line-bright); }
+.tab.active {
+  color: var(--amber); border-color: var(--amber-dim);
+  background: rgba(255, 176, 0, 0.07);
+}
+.tab:disabled {
+  opacity: 0.35; cursor: not-allowed; color: var(--faint);
+}
+
+/* ---------- layout ---------- */
+
+.wrap { display: grid; grid-template-columns: 350px 1fr; flex: 1; min-height: 0; }
+
+.controls {
+  overflow-y: auto; border-right: 1px solid var(--line);
+  padding: 16px 16px 28px; background: var(--panel);
+  scrollbar-width: thin; scrollbar-color: var(--line-bright) transparent;
+}
+
+.stage { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; }
+
+.view {
+  flex: 1; min-height: 320px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  overflow: auto; padding: 24px;
+  background:
+    linear-gradient(rgba(91, 141, 255, 0.045) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, rgba(91, 141, 255, 0.045) 1px, transparent 1px) 0 0 / 22px 22px,
+    radial-gradient(ellipse at 50% 40%, #0a0f17 0%, var(--bg-deep) 85%);
+}
+/* preview wrapper: fill the workspace, let the SVG letterbox into it */
+.view .svgfill {
+  width: 100%; height: 100%; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.view .svgfill svg {
+  width: 100%; height: 100%;
+  filter: drop-shadow(0 6px 28px rgba(0, 0, 0, 0.55));
+}
+.view .placeholder { color: var(--faint); text-align: center; }
+.view .placeholder b { color: var(--amber); font-weight: 600; }
+
+/* crosshair corner ticks on the stage */
+.view::before, .view::after {
+  content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
+}
+.view::before {
+  top: 10px; left: 10px;
+  border-top: 1px solid var(--line-bright); border-left: 1px solid var(--line-bright);
+}
+.view::after {
+  bottom: 10px; right: 10px;
+  border-bottom: 1px solid var(--line-bright); border-right: 1px solid var(--line-bright);
+}
+
+.statusbar {
+  border-top: 1px solid var(--line); padding: 9px 16px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  color: var(--muted); font-size: 11.5px; background: var(--panel);
+  flex: none;
+}
+.statusbar .grow { flex: 1; min-width: 120px; }
+.swatch {
+  display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+  margin-right: 5px; vertical-align: -1px;
+}
+
+/* ---------- form ---------- */
+
+fieldset {
+  border: 1px solid var(--line); border-radius: 6px;
+  margin: 0 0 14px; padding: 10px 12px 12px;
+  background: rgba(255, 255, 255, 0.012);
+}
+legend {
+  color: var(--amber); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.18em; padding: 0 7px;
+}
+legend .idx { color: var(--faint); margin-right: 5px; }
+
+label.row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; margin: 7px 0; color: var(--muted); font-size: 12px;
+}
+label.row > span:first-child { flex: 1; }
+
+input[type="text"], input[type="number"], select {
+  background: var(--bg-deep); border: 1px solid var(--line);
+  color: var(--ink); border-radius: 4px; padding: 4px 7px;
+  width: 100px; font: inherit; font-size: 12px; text-align: right;
+  transition: border-color .15s;
+}
+input:focus, select:focus { outline: none; border-color: var(--amber-dim); }
+select { width: 118px; text-align: left; }
+input.wide { width: 100%; text-align: left; }
+
+input[type="checkbox"] {
+  appearance: none; width: 30px; height: 16px; margin: 0;
+  border: 1px solid var(--line-bright); border-radius: 9px;
+  background: var(--bg-deep); cursor: pointer; position: relative;
+  transition: background .15s, border-color .15s;
+}
+input[type="checkbox"]::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--faint); transition: left .15s, background .15s;
+}
+input[type="checkbox"]:checked { border-color: var(--amber); background: rgba(255,176,0,.12); }
+input[type="checkbox"]:checked::after { left: 16px; background: var(--amber); }
+
+.hint { color: var(--faint); font-size: 10.5px; margin: -2px 0 7px; line-height: 1.45; }
+
+.filedrop {
+  border: 1px dashed var(--line-bright); border-radius: 6px;
+  padding: 14px 12px; text-align: center; cursor: pointer;
+  color: var(--muted); transition: border-color .15s, background .15s;
+  margin-bottom: 8px; font-size: 12px; word-break: break-all;
+}
+.filedrop:hover, .filedrop.over { border-color: var(--amber); background: rgba(255,176,0,.05); }
+.filedrop .name { color: var(--ink); }
+.filedrop .sub { color: var(--faint); font-size: 10.5px; margin-top: 3px; }
+
+button.primary, button.ghost {
+  width: 100%; border: 0; border-radius: 5px; padding: 10px 12px;
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  transition: filter .15s, opacity .15s;
+}
+button.primary { background: var(--amber); color: #221700; }
+button.primary:hover { filter: brightness(1.12); }
+button.primary:disabled { opacity: 0.45; cursor: default; filter: none; }
+button.ghost {
+  background: transparent; color: var(--ink);
+  border: 1px solid var(--line-bright); margin-top: 7px; font-weight: 600;
+}
+button.ghost:hover { border-color: var(--amber-dim); color: var(--amber); }
+button.ghost:disabled { opacity: 0.45; cursor: default; }
+
+a.dl-big {
+  background: var(--amber); color: #221700; text-decoration: none;
+  padding: 9px 22px; border-radius: 6px; cursor: pointer;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.08em;
+  transition: filter .15s;
+}
+a.dl-big:hover { filter: brightness(1.12); }
+
+select.builtin {
+  width: 100%; text-align: left; margin-bottom: 8px; padding: 7px;
+}
+
+.view.droppable.over {
+  outline: 2px dashed var(--amber); outline-offset: -10px;
+}
+
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--warn); }
+.status-err { color: var(--cut); }
+.status-busy { color: var(--muted); }
+.status-busy::after {
+  content: ""; display: inline-block; width: 0.9em; text-align: left;
+  animation: dots 1.2s steps(4) infinite;
+}
+@keyframes dots {
+  0% { content: ""; } 25% { content: "."; }
+  50% { content: ".."; } 75% { content: "..."; }
+}
+
+/* ---------- refold panel ---------- */
+
+.refold {
+  border-top: 1px solid var(--line); background: var(--panel);
+  padding: 14px 16px 18px; flex: none;
+}
+.refold h2 {
+  margin: 0 0 10px; font-size: 11px; color: var(--amber);
+  text-transform: uppercase; letter-spacing: 0.18em; font-weight: 600;
+}
+.refold table { border-collapse: collapse; font-size: 12px; }
+.refold th {
+  text-align: right; padding: 3px 12px; color: var(--faint);
+  font-weight: 400; font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em;
+}
+.refold th:first-child, .refold td:first-child { text-align: left; padding-left: 0; }
+.refold td { text-align: right; padding: 3px 12px; }
+.refold .sils { display: flex; gap: 10px; margin: 12px 0; }
+.refold .sils > div { flex: 1; min-width: 0; }
+.refold .sils svg { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; }
+.viewer3d {
+  height: 440px; border: 1px solid var(--line); border-radius: 6px;
+  overflow: hidden; position: relative; background: var(--bg-deep);
+}
+.viewer3d .legend {
+  position: absolute; top: 7px; left: 10px; color: var(--faint);
+  font-size: 10.5px; z-index: 2; pointer-events: none;
+}
+
+.iou { color: var(--faint); font-size: 11.5px; margin-top: 6px; }
+.warnline { color: var(--warn); font-size: 11.5px; margin-top: 6px; }
+
+/* ---------- modal (3D model preview) ---------- */
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(2, 4, 8, 0.72); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--line-bright);
+  border-radius: 8px; width: min(820px, 92vw);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+}
+.modal-title { color: var(--amber); font-weight: 600; font-size: 13px; }
+.modal-x {
+  background: transparent; border: 0; color: var(--muted); cursor: pointer;
+  font: inherit; font-size: 14px; padding: 2px 6px;
+}
+.modal-x:hover { color: var(--ink); }
+.modal-loading { padding: 40px; text-align: center; color: var(--muted); }
+.cadviewer { height: min(520px, 70vh); }

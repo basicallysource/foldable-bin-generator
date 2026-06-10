@@ -1,0 +1,10 @@
+{
+ "kind": "tester",
+ "n_cells": 16,
+ "params": {
+  "gutter_mm": "6",
+  "include_continuous": "false",
+  "margin_mm": "8",
+  "output_units": "in"
+ }
+}

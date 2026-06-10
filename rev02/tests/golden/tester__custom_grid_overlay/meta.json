@@ -1,0 +1,14 @@
+{
+ "kind": "tester",
+ "n_cells": 9,
+ "params": {
+  "coupon_h_mm": "36",
+  "coupon_w_mm": "28",
+  "dash_values_mm": "1, 2.5, 4",
+  "gap_values_mm": "0.5, 1.25",
+  "overlay_score": "true",
+  "score_inset_mm": "1.5",
+  "show_legends": "false",
+  "show_title": "false"
+ }
+}

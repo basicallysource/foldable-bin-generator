@@ -1,0 +1,27 @@
+{
+  "name": "binflatten-rev02",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n next,api -c cyan,yellow \"next dev -p 3000\" \"bash scripts/dev-api.sh\"",
+    "dev:next": "next dev -p 3000",
+    "dev:api": "bash scripts/dev-api.sh",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.5.19",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "0.160.0",
+    "concurrently": "^9.1.2",
+    "typescript": "^5"
+  }
+}

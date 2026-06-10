@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120.0 144.0" width="100%" preserveAspectRatio="xMidYMid meet">
+<rect x="0" y="0" width="120.0" height="144.0" fill="#0d1117"/>
+<path d="M 10.00,10.00 L 38.00,10.00 L 38.00,46.00 L 10.00,46.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 46.00,10.00 L 74.00,10.00 L 74.00,46.00 L 46.00,46.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 82.00,10.00 L 110.00,10.00 L 110.00,46.00 L 82.00,46.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 10.00,54.00 L 38.00,54.00 L 38.00,90.00 L 10.00,90.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 46.00,54.00 L 74.00,54.00 L 74.00,90.00 L 46.00,90.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 82.00,54.00 L 110.00,54.00 L 110.00,90.00 L 82.00,90.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 10.00,98.00 L 38.00,98.00 L 38.00,134.00 L 10.00,134.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 46.00,98.00 L 74.00,98.00 L 74.00,134.00 L 46.00,134.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<path d="M 82.00,98.00 L 110.00,98.00 L 110.00,134.00 L 82.00,134.00 Z" fill="#161b22" stroke="#ff0000" stroke-width="0.5"/>
+<line x1="11.50" y1="28.00" x2="36.50" y2="28.00" stroke="#00a650" stroke-width="1.4" stroke-opacity="0.8"/>
+<line x1="47.50" y1="28.00" x2="72.50" y2="28.00" stroke="#00a650" stroke-width="1.4" stroke-opacity="0.8"/>
+<line x1="11.50" y1="72.00" x2="36.50" y2="72.00" stroke="#00a650" stroke-width="1.4" stroke-opacity="0.8"/>
+<line x1="47.50" y1="72.00" x2="72.50" y2="72.00" stroke="#00a650" stroke-width="1.4" stroke-opacity="0.8"/>
+<line x1="11.50" y1="116.00" x2="36.50" y2="116.00" stroke="#00a650" stroke-width="1.4" stroke-opacity="0.8"/>
+<line x1="47.50" y1="116.00" x2="72.50" y2="116.00" stroke="#00a650" stroke-width="1.4" stroke-opacity="0.8"/>
+<line x1="11.50" y1="28.00" x2="12.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="13.00" y1="28.00" x2="14.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="14.50" y1="28.00" x2="15.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="16.00" y1="28.00" x2="17.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="17.50" y1="28.00" x2="18.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="19.00" y1="28.00" x2="20.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="20.50" y1="28.00" x2="21.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="22.00" y1="28.00" x2="23.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="23.50" y1="28.00" x2="24.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="25.00" y1="28.00" x2="26.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="26.50" y1="28.00" x2="27.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="28.00" y1="28.00" x2="29.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="29.50" y1="28.00" x2="30.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="31.00" y1="28.00" x2="32.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="32.50" y1="28.00" x2="33.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="34.00" y1="28.00" x2="35.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="35.50" y1="28.00" x2="36.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="47.50" y1="28.00" x2="48.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="49.75" y1="28.00" x2="50.75" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="52.00" y1="28.00" x2="53.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="54.25" y1="28.00" x2="55.25" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="56.50" y1="28.00" x2="57.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="58.75" y1="28.00" x2="59.75" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="61.00" y1="28.00" x2="62.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="63.25" y1="28.00" x2="64.25" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="65.50" y1="28.00" x2="66.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="67.75" y1="28.00" x2="68.75" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="70.00" y1="28.00" x2="71.00" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="72.25" y1="28.00" x2="72.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="83.50" y1="28.00" x2="108.50" y2="28.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="11.50" y1="72.00" x2="14.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="14.50" y1="72.00" x2="17.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="17.50" y1="72.00" x2="20.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="20.50" y1="72.00" x2="23.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="23.50" y1="72.00" x2="26.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="26.50" y1="72.00" x2="29.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="29.50" y1="72.00" x2="32.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="32.50" y1="72.00" x2="35.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="35.50" y1="72.00" x2="36.50" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="47.50" y1="72.00" x2="50.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="51.25" y1="72.00" x2="53.75" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="55.00" y1="72.00" x2="57.50" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="58.75" y1="72.00" x2="61.25" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="62.50" y1="72.00" x2="65.00" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="66.25" y1="72.00" x2="68.75" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="70.00" y1="72.00" x2="72.50" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="83.50" y1="72.00" x2="108.50" y2="72.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="11.50" y1="116.00" x2="15.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="16.00" y1="116.00" x2="20.00" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="20.50" y1="116.00" x2="24.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="25.00" y1="116.00" x2="29.00" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="29.50" y1="116.00" x2="33.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="34.00" y1="116.00" x2="36.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="47.50" y1="116.00" x2="51.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="52.75" y1="116.00" x2="56.75" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="58.00" y1="116.00" x2="62.00" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="63.25" y1="116.00" x2="67.25" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="68.50" y1="116.00" x2="72.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<line x1="83.50" y1="116.00" x2="108.50" y2="116.00" stroke="#0000ff" stroke-width="0.7"/>
+<text x="24.0" y="38.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">1/0.5</text>
+<text x="60.0" y="38.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">1/1.25</text>
+<text x="96.0" y="38.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">score</text>
+<text x="24.0" y="82.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">2.5/0.5</text>
+<text x="60.0" y="82.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">2.5/1.25</text>
+<text x="96.0" y="82.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">score</text>
+<text x="24.0" y="126.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">4/0.5</text>
+<text x="60.0" y="126.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">4/1.25</text>
+<text x="96.0" y="126.8" fill="#ff9500" font-size="3.6" text-anchor="middle" font-family="monospace">score</text>
+</svg>

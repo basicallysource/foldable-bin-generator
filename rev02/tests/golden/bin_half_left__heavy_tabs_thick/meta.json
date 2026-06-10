@@ -1,0 +1,24 @@
+{
+ "height": 427.37,
+ "kind": "process",
+ "n_folds": 3,
+ "n_panels": 4,
+ "params": {
+  "kerf_mm": "0.3",
+  "material_thickness_mm": "6.35",
+  "seam_slot_clearance_mm": "0.4",
+  "seam_tab_count": "3",
+  "seam_tab_dovetail_mm": "1.2",
+  "seam_tab_width_mm": "8"
+ },
+ "root": 871,
+ "shell_face_ids": [
+  871,
+  904,
+  908,
+  910
+ ],
+ "step": "public/bins/bin_half_left.step",
+ "warnings": [],
+ "width": 320.95
+}

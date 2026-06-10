@@ -1,0 +1,5 @@
+# Pinned to the versions the golden corpus was generated with (rev01 machine),
+# so the deployed function's float behaviour stays as close as possible.
+flask==3.1.1
+numpy==2.2.6
+shapely==2.1.2

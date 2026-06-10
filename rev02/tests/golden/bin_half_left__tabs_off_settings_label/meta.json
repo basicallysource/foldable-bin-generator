@@ -1,0 +1,22 @@
+{
+ "height": 437.13,
+ "kind": "process",
+ "n_folds": 3,
+ "n_panels": 4,
+ "params": {
+  "add_labels": "false",
+  "add_settings_label": "true",
+  "label_font_mm": "3",
+  "seam_tab_count": "0"
+ },
+ "root": 871,
+ "shell_face_ids": [
+  871,
+  904,
+  908,
+  910
+ ],
+ "step": "public/bins/bin_half_left.step",
+ "warnings": [],
+ "width": 333.07
+}
