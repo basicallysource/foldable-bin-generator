@@ -74,12 +74,35 @@ def _ring_diff(ra, rb, where: str):
     return None
 
 
-def _seg_diff(sa, sb, where: str, tol: float):
+def _seg_diff(sa, sb, where: str, to_mm: float = 1.0):
+    """Score/fold segments, compared physically (coords scaled to mm).
+    The supporting LINE must match within 20 µm; endpoints may shift up to
+    0.15 mm ALONG it — fold lines are clipped against the GEOS union, and
+    where a line exits a notched boundary can move by tens of µm between
+    GEOS builds (one keeps a near-collinear boundary vertex the other
+    dissolves). End trim of a score line at that scale is physically nothing
+    (kerf is 150 µm); a sideways-shifted line would not be."""
     if len(sa) != len(sb):
         return f"{where}: segment counts differ ({len(sa)} vs {len(sb)})"
+    import math
     for i, (a, b) in enumerate(zip(sa, sb)):
-        if max(abs(x - y) for x, y in zip(a, b)) > tol:
-            return f"{where}: segment {i} deviates more than {tol:g}"
+        ax0, ay0, ax1, ay1 = (v * to_mm for v in a)
+        bx0, by0, bx1, by1 = (v * to_mm for v in b)
+        dx, dy = ax1 - ax0, ay1 - ay0
+        L = math.hypot(dx, dy)
+        if L < 1e-9:
+            if math.hypot(bx0 - ax0, by0 - ay0) > 0.15:
+                return f"{where}: segment {i} (degenerate) moved"
+            continue
+        ux, uy = dx / L, dy / L
+        for px, py in ((bx0, by0), (bx1, by1)):
+            perp = abs((px - ax0) * -uy + (py - ay0) * ux)
+            if perp > 0.02:
+                return (f"{where}: segment {i} sits {perp:.4f} mm off the "
+                        f"golden line (> 0.02)")
+        if max(math.hypot(bx0 - ax0, by0 - ay0),
+               math.hypot(bx1 - ax1, by1 - ay1)) > 0.15:
+            return f"{where}: segment {i} endpoint shifted more than 0.15 mm"
     return None
 
 
@@ -93,9 +116,9 @@ def _strip_geometry(svg: str) -> str:
     return svg
 
 
-def svg_geo_diff(a: str, b: str, num_tol: float):
+def svg_geo_diff(a: str, b: str, num_tol: float, to_mm: float = 1.0):
     """Geometric-equality check of two SVGs from the same generator: rings as
-    polygons, segments/texts in order within tolerance, chrome as text."""
+    polygons, segments/texts compared physically (in mm), chrome as text."""
     ra = [r for d in _PATH_D.findall(a) for r in _d_rings(d)]
     ra += [r for p in _POLY_PTS.findall(a) for r in _d_rings(p)]
     rb = [r for d in _PATH_D.findall(b) for r in _d_rings(d)]
@@ -108,7 +131,7 @@ def svg_geo_diff(a: str, b: str, num_tol: float):
             return d
     sa = [tuple(map(float, m)) for m in _LINE.findall(a)]
     sb = [tuple(map(float, m)) for m in _LINE.findall(b)]
-    d = _seg_diff(sa, sb, "lines", num_tol)
+    d = _seg_diff(sa, sb, "lines", to_mm)
     if d:
         return d
     ta, tb = _TEXT.findall(a), _TEXT.findall(b)
@@ -117,8 +140,8 @@ def svg_geo_diff(a: str, b: str, num_tol: float):
     for i, (xa, xb) in enumerate(zip(ta, tb)):
         if xa[2] != xb[2]:
             return f"text {i}: {xa[2]!r} != {xb[2]!r}"
-        if max(abs(float(xa[j]) - float(xb[j])) for j in (0, 1)) > num_tol:
-            return f"text {i} position deviates more than {num_tol:g}"
+        if max(abs(float(xa[j]) - float(xb[j])) for j in (0, 1)) * to_mm > 0.05:
+            return f"text {i} position deviates more than 0.05 mm"
     return numeric_diff(_strip_geometry(a), _strip_geometry(b), num_tol)
 
 
@@ -151,7 +174,7 @@ def _parse_dxf(text: str):
     return rings, segs
 
 
-def dxf_geo_diff(a: str, b: str, num_tol: float):
+def dxf_geo_diff(a: str, b: str, to_mm: float = 1.0):
     ra, sa = _parse_dxf(a)
     rb, sb = _parse_dxf(b)
     if len(ra) != len(rb):
@@ -160,7 +183,7 @@ def dxf_geo_diff(a: str, b: str, num_tol: float):
         d = _ring_diff(x, y, f"polyline {i}")
         if d:
             return d
-    return _seg_diff(sa, sb, "lines", num_tol)
+    return _seg_diff(sa, sb, "lines", to_mm)
 
 
 def silhouette_svg_diff(a: str, b: str):
@@ -257,6 +280,8 @@ def compare(case: dict, got: dict):
         errs += json_diff(ref, dep)[:8]
         return errs, tier
 
+    # svg/dxf coordinates are in the chosen output unit; the preview is mm
+    out_mm = 25.4 if case.get("params", {}).get("output_units") == "in" else 1.0
     for k in ("preview", "svg", "dxf"):
         dep = normalize(got[k])
         if dep == case[k]:
@@ -267,8 +292,9 @@ def compare(case: dict, got: dict):
             continue
         # texts differ structurally — fall back to geometric equality
         tier = 2
-        d = (dxf_geo_diff(case[k], dep, num_tol) if k == "dxf"
-             else svg_geo_diff(case[k], dep, num_tol))
+        to_mm = 1.0 if k == "preview" else out_mm
+        d = (dxf_geo_diff(case[k], dep, to_mm) if k == "dxf"
+             else svg_geo_diff(case[k], dep, num_tol, to_mm))
         if d:
             errs.append(f"{k}: {d}")
     for k in (("warnings", "width", "height", "n_panels", "n_folds", "root",
