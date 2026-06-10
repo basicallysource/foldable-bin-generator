@@ -20,28 +20,32 @@ it with each request, and SVG/DXF return inline in the JSON.
 
 ### 1. Source identity — `tests/check_source_identical.py`
 
-sha256 of every vendored `api/_lib/binflatten/*.py` must equal the rev01
-package (live copy at the repo root while it exists, else the frozen manifest
-embedded in the script). **Run after ANY change under `api/`.** If you
-intentionally change the engine, you are no longer porting — regenerate
-goldens from a verified state and update the manifest consciously.
+sha256 of every vendored `api/_lib/binflatten/*.py` must equal the frozen
+manifest embedded in the script (recorded from rev01 while it still lived at
+the repo root; rev01 was removed when rev02 moved to the root — see git
+history). **Run after ANY change under `api/`.** If you intentionally change
+the engine, regenerate goldens from a verified state and update the manifest
+consciously.
 
 ### 2. Behavioural identity on this machine — golden corpus
 
-* `tests/make_golden.py` drives **rev01's real Flask routes**
-  (upload → process → download, refold, tester) over a corpus of
-  **all 6 STEP files × 7 parameter sets** (fold modes, perforation, overlay,
-  end relief, compensation on/off, kerf on/off, inches+scale, seam
-  tabs/dovetails on/off, thick stock, settings label) plus 12 refold-report
-  cases and 3 tester cards — 57 cases. Responses are frozen under
-  `tests/golden/` (timestamps in the engraved settings block are normalised).
-* `tests/check_equivalence.py` replays every case against **rev02's Flask app
-  in-process** and requires **byte equality** of SVG / DXF / preview and
+* The corpus in `tests/golden/` was generated from **rev01's real Flask
+  routes** (upload → process → download, refold, tester) over
+  **5 built-in bins (public/bins) × 7 parameter sets** (fold modes,
+  perforation, overlay, end relief, compensation on/off, kerf on/off,
+  inches+scale, seam tabs/dovetails on/off, thick stock, settings label)
+  plus 10 refold-report cases and 3 tester cards — 48 cases (timestamps in
+  the engraved settings block normalised). `tests/make_golden.py` now
+  regenerates it from the CURRENT engine via `api/index.py` — only for
+  intentional engine changes, after the `verify.py` sweep.
+* `tests/check_equivalence.py` replays every case against the Flask app
+  **in-process** and requires **byte equality** of SVG / DXF / preview and
   exact equality of dimensions, panel/fold counts, root face, shell face ids,
   warnings, and the full refold JSON (silhouettes, IoU, extents, 3D scene).
 
 Same machine, same interpreter, same libs ⇒ any difference is a transport
-bug, not float noise. Result on 2026-06-09: **57/57 byte-equal.**
+bug, not float noise. Result on 2026-06-09: **48/48 byte-equal** (and 57/57
+for the original rev01-vs-rev02 corpus before the bins were updated).
 
 ### 3. Deployment identity — `tests/check_deployed.py <url>`
 
@@ -91,15 +95,15 @@ refold table/3D → tester card) with numbers identical to local.
 
 | change | run |
 |---|---|
-| anything under `rev02/api/` | 1 then 2 |
+| anything under `api/` | 1 then 2 |
 | frontend only (`app/`, `components/`, `lib/`) | 2 (cheap, catches form-field drift) + the UI test |
 | new deployment | 3 against the deployment URL |
-| intentional engine change | make the change in ONE place, re-verify with `verify.py` (refold check), regenerate goldens, update the manifest in `check_source_identical.py` |
+| intentional engine change | re-verify every bin with `verify.py` (refold check), regenerate goldens (`tests/make_golden.py`), update the manifest in `check_source_identical.py` |
 
 ```bash
-# from rev02/
+# from the repo root
 python tests/check_source_identical.py
-python tests/make_golden.py        # only to (re)freeze the reference (needs rev01 at repo root)
+python tests/make_golden.py        # only to (re)freeze the reference, post-verify
 python tests/check_equivalence.py
 python tests/check_deployed.py https://<deployment>.vercel.app
 ```

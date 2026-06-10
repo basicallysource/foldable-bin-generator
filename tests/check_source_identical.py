@@ -19,9 +19,10 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REV02 = os.path.dirname(HERE)
-REPO = os.path.dirname(REV02)
 VENDORED = os.path.join(REV02, "api", "_lib", "binflatten")
-REFERENCE = os.path.join(REPO, "binflatten")
+# rev01's package lived at the repo root until rev02 replaced it; once
+# absent, the frozen manifest below is the anchor.
+REFERENCE = os.path.join(REV02, "binflatten")
 
 # sha256 of rev01's binflatten/*.py, recorded when rev02 was created.
 FROZEN_MANIFEST = {

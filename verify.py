@@ -3,12 +3,15 @@ Refold verification CLI: fold the generated flat pattern back up in 3D and
 compare it to the CAD STEP — silhouette overlays + outermost dimensions.
 
 Usage:
-    python verify.py "../steps/0_bins - bin_third_left.step" [--out DIR]
+    python verify.py public/bins/bin_third_left.step [--out DIR]
                      [--set fold_comp_factor=1.0] [--set seam_tab_count=0] ...
 
 Writes <out>/view_*.svg overlays (green = CAD, red = refold) and
 <out>/metrics.json, prints a summary table to stdout. Exit code 1 if any
-outermost dimension deviates more than --tol (default 1.0 mm).
+outermost dimension deviates more than --tol (default 1.5 mm).
+
+Run this on every bin after ANY change to the engine (api/_lib/binflatten)
+before regenerating the golden corpus — see EQUIVALENCE.md.
 """
 
 from __future__ import annotations
@@ -18,10 +21,14 @@ import json
 import os
 import sys
 
-from binflatten.params import FlattenParams
-from binflatten.pipeline import load_model
-from binflatten.unfold import unfold
-from binflatten.refold import verify_refold
+# the engine lives inside the Vercel function bundle
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "api", "_lib"))
+
+from binflatten.params import FlattenParams  # noqa: E402
+from binflatten.pipeline import load_model  # noqa: E402
+from binflatten.unfold import unfold  # noqa: E402
+from binflatten.refold import verify_refold  # noqa: E402
 
 
 def main(argv=None):

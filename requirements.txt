@@ -1,4 +1,5 @@
-flask>=3.0
-numpy>=1.24
-shapely>=2.0
-# matplotlib is only needed for the dev/diagnostic scripts, not the app itself.
+# Pinned to the versions the golden corpus was generated with (rev01 machine),
+# so the deployed function's float behaviour stays as close as possible.
+flask==3.1.1
+numpy==2.2.6
+shapely==2.1.2

@@ -1,45 +1,47 @@
 # foldable-bin-generator
 
 Turn a bin's CAD (STEP B-rep) into a single, foldable, laser-cuttable flat
-pattern (SVG + DXF) for LightBurn.
+pattern (SVG + DXF) for LightBurn — laser one piece of 1/8" cardboard and
+fold it up into a sorting-machine bin.
 
-Goal: **flatten the whole bin into one part and score the fold lines**, so
-you laser one piece of 1/8" cardboard and fold it up into the bin.
+Live: **https://rev02-lyart.vercel.app** — pushes to `main` auto-deploy.
 
-## Run
-
-```bash
-pip install -r requirements.txt
-python app.py
-# open http://127.0.0.1:5000
+```
+app/, components/, lib/   Next.js UI (flatten, refold check, fold tester)
+api/index.py              stateless Flask API  →  one Vercel Python function
+api/_lib/binflatten/      geometry engine (DO NOT EDIT casually — see below)
+public/bins/              the 5 built-in bin STEPs, selectable in the UI
+tests/                    equivalence suite + frozen golden corpus
+verify.py                 refold-verification CLI (run before cutting)
 ```
 
-Upload a bin `.step`, tweak parameters, watch the net update (red = cut, blue =
-fold/score), download SVG/DXF.
+The browser keeps the chosen STEP and posts it with every request (bin STEPs
+are ~50 kB; Vercel's request cap is 4.5 MB); SVG/DXF come back inline and
+download client-side. Flattening re-runs automatically on every model pick
+and parameter change.
 
-## Refold verification
+## Run locally
 
-The fold-up is simulated and checked against the CAD, so you don't have to
-cut cardboard to find a geometry bug:
+```bash
+npm install
+pip install -r requirements.txt   # flask/numpy/shapely, pinned
+npm run dev                       # Next on :3000 + Flask API on :5328 (proxied)
+```
 
-* **Web UI**: press **refold check** after flattening — folded 3D view
-  (three.js, internet needed for the CDN), silhouette overlays (green = CAD,
-  red = refold) and the outermost-dimension table work per uploaded STEP.
-* **CLI** (what an agent / CI can run):
+## Changing the geometry engine
 
-  ```bash
-  python verify.py "../steps/0_bins - bin_third_left.step" --out outputs/verify \
-      --set fold_comp_factor=1.0
-  ```
+The engine (`api/_lib/binflatten/`) is the carefully-calibrated part: fold
+compensation, overlap-aware unfolding, seam tabs, kerf. Any change must
+follow `EQUIVALENCE.md`: refold-verify every bin (`python verify.py
+public/bins/<bin>.step`), regenerate the golden corpus
+(`python tests/make_golden.py`), update the sha256 manifest in
+`tests/check_source_identical.py`, and re-verify the deployment:
 
-  writes `view_*.svg` overlays + `metrics.json`, prints IoU / dimension
-  diffs, exit code 1 if any outer dimension deviates more than `--tol`
-  (default 1.5 mm).
+```bash
+python tests/check_source_identical.py   # engine untouched? (sha256)
+python tests/check_equivalence.py        # 48-case corpus, byte-equal locally
+python tests/check_deployed.py https://rev02-lyart.vercel.app
+```
 
-The simulator uses the same crease model the compensation assumes (pivot
-`fold_comp_factor·t` above the plotted face, panels = slabs one stock
-thickness deep, folded to the true CAD dihedral, crease wedges filling the
-corners). Known, physical deviation: a leaning front wall whose bottom edge
-sits one stock thickness up (on the real floor/toes) pulls the ground-level
-front extent back ~1 mm vs CAD.
-
+Known physical deviation: the leaning front wall's raised bottom edge costs
+~1 mm of ground-level front extent (it sits on the real floor/toes).

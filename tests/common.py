@@ -28,8 +28,7 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REV02 = os.path.dirname(HERE)
-REPO = os.path.dirname(REV02)
+REV02 = os.path.dirname(HERE)   # the app root (name kept from the rev02 port)
 GOLDEN = os.path.join(HERE, "golden")
 
 # The corpus inputs are the bins shipped with the app itself (public/bins/),
