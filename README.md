@@ -4,7 +4,7 @@ Turn a bin's CAD (STEP B-rep) into a single, foldable, laser-cuttable flat
 pattern (SVG + DXF) for LightBurn — laser one piece of 1/8" cardboard and
 fold it up into a sorting-machine bin.
 
-Live: **[https://foldable-bin-generator.vercel.app](https://bin-gen.basically.website/)** — pushes to `main` auto-deploy.
+Live: **[https://bin-gen.basically.website](https://bin-gen.basically.website/)** — pushes to `main` auto-deploy.
 
 ```
 app/, components/, lib/   Next.js UI (flatten, refold check, fold tester)
