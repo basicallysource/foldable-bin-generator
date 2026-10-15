@@ -78,13 +78,13 @@ export default function Page() {
   const pick = useCallback(
     (f: File | undefined | null) => {
       if (!f) return;
-      if (!/\.(step|stp)$/i.test(f.name)) {
-        setStatus({ msg: `unsupported '${f.name}' — needs a .step/.stp`, cls: "status-err" });
+      if (!/\.(step|stp|stl)$/i.test(f.name)) {
+        setStatus({ msg: `unsupported '${f.name}' — needs STEP or a floor-down faceted open-bin STL`, cls: "status-err" });
         return;
       }
       // per-file defaults: revert the previous file's overridden fields to the
       // global defaults, then apply this file's overrides on top
-      const ov = defaultOverridesFor(f.name);
+      const ov: FormValues = /\.stl$/i.test(f.name) ? { seam_tab_count: "0", overlay_score: "false", shell: "outer", root: "largest" } : defaultOverridesFor(f.name);
       flatten.setValues((p) => {
         const next = { ...p };
         for (const k of Object.keys(activeOverrides.current))
@@ -157,7 +157,7 @@ export default function Page() {
             bin<span className="dim">flatten</span>
           </h1>
         </div>
-        <span className="subtitle">STEP → foldable flat pattern → LightBurn</span>
+        <span className="subtitle">STEP / simple STL → foldable flat pattern → LightBurn</span>
         <nav className="tabs">
           <button
             className={`tab${tab === "flatten" ? " active" : ""}`}
@@ -211,6 +211,7 @@ function FlattenPane({
   result: ProcessResult | null;
   status: Status;
 }) {
+  const simple_stl = !!file && /\.stl$/i.test(file.name);
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [stageDrag, setStageDrag] = useState(false);
@@ -281,18 +282,19 @@ function FlattenPane({
               </>
             ) : (
               <>
-                or drop your own <b>.step</b> here
+                or drop <b>.step / .stl</b> here
                 <div className="sub">click to browse</div>
               </>
             )}
             <input
               ref={fileInput}
               type="file"
-              accept=".step,.stp"
+              accept=".step,.stp,.stl"
               hidden
               onChange={(e) => pick(e.target.files?.[0])}
             />
           </div>
+          <Hint>STL: floor down, open roof/back, flat front (one or three panels). Sides fold from the floor; the front wraps from one side. No seam attachment is added.</Hint>
           <button type="button" className="ghost" disabled={!file} onClick={openPreview}>
             preview 3D model
           </button>
@@ -318,10 +320,10 @@ function FlattenPane({
           <TextField api={api} name="perf_dash_mm" label="perf dash (mm)" />
           <TextField api={api} name="perf_gap_mm" label="perf gap (mm)" />
           <TextField api={api} name="fold_end_relief_mm" label="end relief (mm)" />
-          <CheckField api={api} name="overlay_score" label="green solid overlay" />
+          {!simple_stl && <><CheckField api={api} name="overlay_score" label="green solid overlay" />
           <Hint>
             continuous green line (own layer) on every fold — score pass + perf on the same crease
-          </Hint>
+          </Hint></>}
         </Fieldset>
 
         <Fieldset idx="5 ·" title="thickness comp">
@@ -333,7 +335,7 @@ function FlattenPane({
           <Hint>front wall bottom cut this far above the floor plane (clears the toes)</Hint>
         </Fieldset>
 
-        <Fieldset idx="6 ·" title="corner tabs">
+        {!simple_stl && <><Fieldset idx="6 ·" title="corner tabs">
           <TextField api={api} name="seam_tab_count" label="tab count" />
           <Hint>tabs on the front wall&apos;s free edge + slots in the far side wall; 0 = off</Hint>
           <TextField api={api} name="seam_tab_width_mm" label="tab width (mm)" />
@@ -352,9 +354,9 @@ function FlattenPane({
           <SelectField api={api} name="shell" label="shell"
             options={[["outer", "outer"], ["inner", "inner"]]} />
           <TextField api={api} name="root" label="root face" />
-          <Hint>&quot;largest&quot; = auto floor, or a STEP face id</Hint>
+          <Hint>&quot;largest&quot; selects the STEP floor.</Hint>
           <TextField api={api} name="slab_max_thickness_mm" label="slab max (mm)" />
-        </Fieldset>
+        </Fieldset></>}
 
         <Fieldset idx="8 ·" title="engrave">
           <CheckField api={api} name="add_settings_label" label="settings label" />
@@ -373,7 +375,7 @@ function FlattenPane({
             <div className="svgfill" dangerouslySetInnerHTML={{ __html: result.preview }} />
           ) : (
             <div className="placeholder">
-              drop a bin <b>.step</b> anywhere here
+              drop a bin <b>.step / .stl</b> anywhere here
               <br />
               <span style={{ fontSize: 11 }}>or pick a built-in bin on the left</span>
             </div>
@@ -398,7 +400,7 @@ function FlattenPane({
           {result && (
             <>
               <a className="dl-big" onClick={() => downloadText(result.svg, "bin_flat.svg")}>
-                ⬇ SVG
+                ⬇ Download SVG
               </a>
               <a className="dl-big" onClick={() => downloadText(result.dxf, "bin_flat.dxf")}>
                 ⬇ DXF
@@ -411,7 +413,7 @@ function FlattenPane({
       {previewOpen && file && (
         <Modal title={file.name} onClose={() => setPreviewOpen(false)}>
           {previewLoading ? (
-            <div className="modal-loading">parsing STEP…</div>
+            <div className="modal-loading">parsing model…</div>
           ) : preview3d ? (
             <CadViewer scene3={preview3d} />
           ) : (
@@ -581,7 +583,7 @@ function TesterPane({ api }: { api: FormApi }) {
           {result && (
             <>
               <a className="dl-big" onClick={() => downloadText(result.svg, "fold_test_card.svg")}>
-                ⬇ SVG
+                ⬇ Download SVG
               </a>
               <a className="dl-big" onClick={() => downloadText(result.dxf, "fold_test_card.dxf")}>
                 ⬇ DXF

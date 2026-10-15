@@ -1,21 +1,4 @@
-"""
-binflatten rev02 — stateless HTTP API, deployable as a Vercel Python function.
-
-The geometry engine is the rev01 `binflatten` package, vendored BYTE-FOR-BYTE
-in api/_lib/binflatten (the underscore keeps Vercel from treating its modules
-as functions; `tests/check_source_identical.py` enforces the byte equality).
-This file only adapts transport: where rev01's app.py stored the upload on
-disk under a token and served downloads from disk, Vercel functions have no
-shared disk, so every request carries the STEP file and the SVG/DXF come back
-inline in the JSON for the browser to save client-side.
-
-Request fields, parameter coercion, part-name fallback and error formatting
-are kept identical to rev01's app.py so the two are interchangeable
-end-to-end (see tests/check_equivalence.py).
-
-Local dev:  python api/index.py   (Flask on :5328; `npm run dev` proxies /api)
-"""
-
+# STEP core stays frozen; the STL adapter reuses its compensation and exports.
 from __future__ import annotations
 
 import os
@@ -27,8 +10,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "_li
 from flask import Flask, request, jsonify  # noqa: E402
 
 from binflatten.params import FlattenParams, TesterParams  # noqa: E402
-from binflatten.pipeline import process, load_model  # noqa: E402
-from binflatten.unfold import unfold  # noqa: E402
+from binflatten.pipeline import process as processStep, load_model as loadStep  # noqa: E402
+from binflatten.unfold import unfold as unfoldStep  # noqa: E402
+from simple_stl import processSimple, readSimpleStl, unfoldSimple
 from binflatten.refold import verify_refold  # noqa: E402
 from binflatten.export import to_svg, to_dxf, to_preview_svg  # noqa: E402
 from binflatten.tester import tester_svg, tester_dxf, tester_preview_svg  # noqa: E402
@@ -36,6 +20,21 @@ from binflatten.tester import tester_svg, tester_dxf, tester_preview_svg  # noqa
 app = Flask(__name__)
 # Vercel caps request bodies at 4.5 MB anyway; bin STEP exports are ~50 KB.
 app.config["MAX_CONTENT_LENGTH"] = 4 * 1024 * 1024
+
+
+def load_model(path):
+    return readSimpleStl(path) if path.lower().endswith('.stl') else loadStep(path)
+
+
+def unfold(model, params):
+    return unfoldSimple(model, params) if hasattr(model, 'simple_links') else unfoldStep(model, params)
+
+
+def process(path, params):
+    if path.lower().endswith('.stl'):
+        _, pattern, geometry = processSimple(path, params)
+        return pattern, geometry
+    return processStep(path, params)
 
 
 def _params_from_form(form) -> FlattenParams:
@@ -51,8 +50,8 @@ def _save_step_upload():
     if not f or not f.filename:
         return None, None, (jsonify(error="no file"), 400)
     ext = os.path.splitext(f.filename)[1].lower()
-    if ext not in (".step", ".stp"):
-        return None, None, (jsonify(error=f"unsupported '{ext}'; upload a .step/.stp"), 400)
+    if ext not in (".step", ".stp", ".stl"):
+        return None, None, (jsonify(error=f"unsupported '{ext}'; upload STEP or a floor-down faceted open-bin STL"), 400)
     fd, path = tempfile.mkstemp(suffix=ext)
     with os.fdopen(fd, "wb") as out:
         out.write(f.read())

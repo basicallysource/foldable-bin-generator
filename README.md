@@ -45,3 +45,37 @@ python tests/check_deployed.py https://foldable-bin-generator.vercel.app
 
 Known physical deviation: the leaning front wall's raised bottom edge costs
 ~1 mm of ground-level front extent (it sits on the real floor/toes).
+
+## Simple STL bins
+
+Upload an STL in millimetres with its floor down, open roof and open back.
+This mode supports two planar side walls and either one flat front panel or
+three connected front facets. It retains the floor outline, hinges both sides
+on the floor, and attaches the front chain to one side only. The other seam is
+left unattached: no tabs, slots, flaps or dovetails are generated.
+
+The default stock is 3.175 mm cardboard. Fold compensation reuses the STEP
+engine's thickness correction; folds use blue 5 mm cuts / 5 mm gaps and the
+outline is red. The optional green overlay is disabled for STL files.
+Material compression and the unattached seam still need a physical sample.
+
+For batch exports, using Python 3.11 with `requirements.txt` installed:
+
+```sh
+python scripts/simple_stl.py open-bin.stl --out outputs/open-bin --thickness 3.175
+```
+
+This writes SVG, DXF, a preview SVG and a JSON receipt with input hash, source
+panels, hinge tree, compensated flat panels and output bounds. Non-horizontal
+floors, roofs, curved fronts and structural holes are rejected. STL coordinates
+have no unit metadata; this mode explicitly interprets them as millimetres.
+Coplanar facet merging uses a 0.00001 mm grid and 0.0001 mm numerical closure.
+The simple mode clips each fold to its two compensated panels and pads the
+viewBox around the actual kerf contour.
+
+The original STEP package remains byte-identical. Run
+`python tests/check_simple_stl.py` for the synthetic STL fixtures and
+`python tests/check_step_unchanged.py --baseline BASE_COMMIT` to compare all
+48 existing STEP cases on one runtime. The historical golden checks remain
+unchanged; their strict byte comparison can expose cross-platform GEOS/libm
+rounding differences.
