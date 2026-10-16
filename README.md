@@ -79,3 +79,11 @@ The original STEP package remains byte-identical. Run
 48 existing STEP cases on one runtime. The historical golden checks remain
 unchanged; their strict byte comparison can expose cross-platform GEOS/libm
 rounding differences.
+
+Simple STL exports include open red release cuts wherever compensated panels
+meet outside the hinge tree. These are through-cut paths in SVG and DXF, not
+fold marks: they release the front from the floor at the small corner bridge.
+The JSON receipt lists their panel IDs and endpoints as `cut_segments`.
+Adjacency recognition includes the existing exporter's 0.001 mm numerical
+weld; it does not enlarge a notch or trim away a panel. The nominal panel
+outlines remain unchanged except for the physical laser kerf at each slit.

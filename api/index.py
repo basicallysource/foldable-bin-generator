@@ -14,8 +14,23 @@ from binflatten.pipeline import process as processStep, load_model as loadStep  
 from binflatten.unfold import unfold as unfoldStep  # noqa: E402
 from simple_stl import processSimple, readSimpleStl, unfoldSimple
 from binflatten.refold import verify_refold  # noqa: E402
-from binflatten.export import to_svg, to_dxf, to_preview_svg  # noqa: E402
+from binflatten.export import to_svg as stepSvg, to_dxf as stepDxf, to_preview_svg as stepPreview  # noqa: E402
 from binflatten.tester import tester_svg, tester_dxf, tester_preview_svg  # noqa: E402
+
+from simple_export import toSimpleSvg, toSimpleDxf, toSimplePreview
+
+
+def to_svg(geometry, params):
+    return toSimpleSvg(geometry, params) if hasattr(geometry, "cut_segments") else stepSvg(geometry, params)
+
+
+def to_dxf(geometry, params):
+    return toSimpleDxf(geometry, params) if hasattr(geometry, "cut_segments") else stepDxf(geometry, params)
+
+
+def to_preview_svg(pattern, geometry, params):
+    return toSimplePreview(pattern, geometry, params) if hasattr(geometry, "cut_segments") else stepPreview(pattern, geometry, params)
+
 
 app = Flask(__name__)
 # Vercel caps request bodies at 4.5 MB anyway; bin STEP exports are ~50 KB.
@@ -97,6 +112,7 @@ def process_route():
         shell_face_ids=fp.shell_face_ids,
         svg=svg,
         dxf=dxf,
+        **({"cut_segments": [{"panels": cut["panels"], "points": cut["points"].tolist()} for cut in geom.cut_segments]} if hasattr(geom, "cut_segments") else {}),
     )
 
 
@@ -113,6 +129,8 @@ def refold_route():
         fp = unfold(model, params)
         rep = verify_refold(model, fp, params)
         rep["warnings"] = (rep.get("warnings") or []) + (fp.warnings or [])
+        if hasattr(fp, 'cut_segments'):
+            rep['cut_segments'] = [{'panels': cut['panels'], 'points': cut['points'].tolist()} for cut in fp.cut_segments]
     except Exception as e:
         return jsonify(error=f"{type(e).__name__}: {e}"), 500
     finally:

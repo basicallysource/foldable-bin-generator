@@ -3,14 +3,19 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+import xml.etree.ElementTree as ET
 
 import numpy as np
 from shapely.geometry import Polygon, LineString
+from shapely.ops import unary_union
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'api' / '_lib'))
-from simple_stl import processSimple, readSimpleStl
+from simple_stl import processSimple, readSimpleStl, releaseCuts
 from binflatten.params import FlattenParams
-from binflatten.export import to_svg
+from binflatten.export import to_svg, build_geometry
+from binflatten.unfold import FlatPattern, Panel2D, FoldLine
+from simple_export import toSimpleSvg, toSimpleDxf, toSimplePreview
 
 
 def fixture(path, roof=False):
@@ -44,6 +49,44 @@ def fixture(path, roof=False):
 
 
 class SimpleStlTests(unittest.TestCase):
+    def testFloorFrontRelease(self):
+        pattern = FlatPattern(root_fid=1)
+        rings = [[[0,0],[100,0],[100,80],[0,80]], [[-20,0],[0,0],[0,80],[-20,80]],
+                 [[100,0],[120,0],[120,80],[100,80]], [[99,80],[120,80],[120,100],[99,100]]]
+        for fid, ring in enumerate(rings,1):
+            points = np.array(ring,dtype=float)
+            pattern.panels.append(Panel2D(fid,'floor' if fid==1 else 'wall',points,points.mean(0)))
+        for parent,child,a,b in [(1,2,[0,0],[0,80]),(1,3,[100,0],[100,80]),(3,4,[100,80],[120,80])]:
+            pattern.folds.append(FoldLine(np.array(a),np.array(b),90,parent,child))
+        cuts = releaseCuts(pattern)
+        self.assertEqual(len(cuts),1)
+        self.assertEqual(set(cuts[0]['panels']),{1,4})
+        self.assertAlmostEqual(LineString(cuts[0]['points']).length,1)
+        stock = unary_union([Polygon(p.poly) for p in pattern.panels])
+        hinges = unary_union([LineString([f.p0,f.p1]).buffer(.075) for f in pattern.folds])
+        original = stock.difference(hinges)
+        self.assertEqual(len(original.geoms),3)
+        released = stock.difference(LineString(cuts[0]['points']).buffer(.075))
+        self.assertEqual(released.geom_type,'Polygon')
+        self.assertEqual(len(released.difference(hinges).geoms),4)
+        for fold in pattern.folds:
+            self.assertLess(LineString(cuts[0]['points']).intersection(LineString([fold.p0,fold.p1])).length,.00001)
+        params = FlattenParams(overlay_score=False)
+        geometry = build_geometry(pattern,params)
+        geometry.cut_segments = cuts
+        for text in [toSimpleSvg(geometry,params),toSimplePreview(pattern,geometry,params)]:
+            group = next(e for e in ET.fromstring(text).iter() if e.attrib.get('id')=='release-cut')
+            self.assertEqual(group.attrib['stroke'],'#ff0000')
+            self.assertEqual(len(group),1)
+            self.assertNotIn('Z',group[0].attrib['d'])
+        dxf = toSimpleDxf(geometry,params)
+        self.assertEqual(dxf.count('0\nLINE\n8\nCUT\n'),1)
+        header = '0\nSECTION\n2\nHEADER\n0\nENDSEC\n'
+        with patch('simple_export.to_dxf',return_value=header+dxf):
+            multiple = toSimpleDxf(geometry,params)
+            self.assertTrue(multiple.startswith(header))
+            self.assertEqual(multiple[len(header):].count('0\nLINE\n8\nCUT\n'),2)
+
     def testApi(self):
         sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'api'))
         from index import app

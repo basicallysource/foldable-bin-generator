@@ -16,6 +16,34 @@ from binflatten.export import build_geometry
 
 PLANE_TOLERANCE = 0.02
 MIN_PANEL_AREA = 100
+JOINT_TOLERANCE = 0.00001
+EXPORT_WELD = 0.001
+
+
+def releaseCuts(pattern):
+    hinges = {frozenset([fold.panel_a, fold.panel_b]) for fold in pattern.folds}
+    cuts = []
+    for index, panel in enumerate(pattern.panels):
+        for other in pattern.panels[:index]:
+            if frozenset([panel.fid, other.fid]) in hinges:
+                continue
+            for a, b in zip(panel.poly, np.roll(panel.poly, -1, axis=0)):
+                length = np.linalg.norm(b-a)
+                if length <= .01:
+                    continue
+                axis = (b-a)/length
+                for c, d in zip(other.poly, np.roll(other.poly, -1, axis=0)):
+                    if np.linalg.norm(d-c) <= .01 or abs(axis @ _unit(d-c)) < 1-1e-7:
+                        continue
+                    offset_c, offset_d = c-a, d-a
+                    distances = [abs(axis[0]*offset[1]-axis[1]*offset[0]) for offset in [offset_c,offset_d]]
+                    if max(distances) > 2*EXPORT_WELD+JOINT_TOLERANCE:
+                        continue
+                    start, end = sorted([float((c-a)@axis), float((d-a)@axis)])
+                    start, end = max(0,start), min(length,end)
+                    if end-start > .01:
+                        cuts.append({'panels': [panel.fid, other.fid], 'points': np.array([a+start*axis, a+end*axis])})
+    return cuts
 
 
 def readTriangles(path):
@@ -202,6 +230,7 @@ def unfoldSimple(model, params):
         fold.p0 += shift
         fold.p1 += shift
     fp.frame = dict(origin=origin, u=u, v=v, n=root.normal, scale=params.scale, shift=shift, cad_centroid={f.fid: f.outer.mean(0) for f in model.faces})
+    fp.cut_segments = releaseCuts(fp)
     return fp
 
 
@@ -226,5 +255,8 @@ def processSimple(path, params):
     for fold in fp.folds:
         fold.p0 += shift
         fold.p1 += shift
+    for cut in fp.cut_segments:
+        cut['points'] += shift
+    geometry.cut_segments = fp.cut_segments
     fp.frame['shift'] += shift
     return model, fp, geometry

@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / 'api' / '_lib'))
 from simple_stl import processSimple
 from binflatten.params import FlattenParams
-from binflatten.export import to_svg, to_dxf, to_preview_svg
+from simple_export import toSimpleSvg as to_svg, toSimpleDxf as to_dxf, toSimplePreview as to_preview_svg
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input', type=pathlib.Path)
@@ -23,6 +23,8 @@ args.out.with_name(args.out.name+'-preview.svg').write_text(to_preview_svg(fp, g
 args.out.with_suffix('.dxf').write_text(to_dxf(geometry, params))
 receipt = {
     'source_sha256': model.source_sha256,
+    'cut_segments': [{'panels': cut['panels'], 'points': cut['points'].tolist()} for cut in geometry.cut_segments],
+    'release_cut_kerf_mm': params.kerf_mm,
     'parameters': params.to_dict(),
     'source_panels': [{'id': face.fid, 'folded': face.outer.tolist(), 'normal': face.normal.tolist()} for face in model.faces],
     'source_hinges': [{'parent': parent, 'child': child, 'edge': [a.tolist(), b.tolist()]} for parent, child, a, b in model.simple_links],
