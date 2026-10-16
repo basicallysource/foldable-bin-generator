@@ -206,6 +206,25 @@ def unfoldSimple(model, params):
         edge = to2d(np.array([e0, e1]))
         wedge = _face_wedge_deg(by_id[parent], by_id[child], a, b)
         fp.folds.append(FoldLine(edge[0], edge[1], 180 - wedge, parent, child, wedge))
+    # Thin stock can expose the native wall offset before compensation reaches it.
+    for fold in fp.folds:
+        panel = next(panel for panel in fp.panels if panel.fid == fold.panel_b)
+        axis = _unit(fold.p1 - fold.p0)
+        normal = np.array([-axis[1], axis[0]])
+        distances = (panel.poly - fold.p0) @ normal
+        if distances.mean() < 0:
+            normal = -normal
+            distances = -distances
+        allowance = params.fold_comp_factor * params.material_thickness_mm
+        if params.fold_comp_angle_scaled:
+            allowance *= math.tan(math.radians(max(0., 180. - fold.dihedral_deg)) / 2)
+        if distances.min() > allowance + JOINT_TOLERANCE:
+            edge = np.argsort(distances)[:2]
+            adjacent = (edge[0] - edge[1]) % len(panel.poly) in (1, len(panel.poly) - 1)
+            parallel = abs(_unit(panel.poly[edge[1]] - panel.poly[edge[0]]) @ axis) > 1 - 1e-7
+            if adjacent and parallel and abs(distances[edge[0]] - distances[edge[1]]) < PLANE_TOLERANCE:
+                panel.poly[edge] -= distances[edge, None] * normal
+                panel.centroid = panel.poly.mean(0)
     _thickness_compensate(fp, by_id, 1., params)
     panels = {panel.fid: panel for panel in fp.panels}
     for fold in fp.folds:

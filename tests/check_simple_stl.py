@@ -127,6 +127,21 @@ class SimpleStlTests(unittest.TestCase):
             _, thicker, _ = processSimple(path, FlattenParams(material_thickness_mm=4))
             self.assertNotEqual(pattern.bounds()[1].tolist(),thicker.bounds()[1].tolist())
 
+    def testThinStockHinges(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder)/'thin.stl'
+            fixture(path)
+            for thickness in [.7, 1., 1.5, 1.8, 2., 2.5, 3., 3.175, 4.]:
+                with self.subTest(thickness=thickness):
+                    _, pattern, geometry = processSimple(path, FlattenParams(material_thickness_mm=thickness))
+                    self.assertEqual(len(geometry.cut_loops), 1)
+                    by_id = {panel.fid: Polygon(panel.poly) for panel in pattern.panels}
+                    for fold in pattern.folds:
+                        line = LineString([fold.p0, fold.p1])
+                        self.assertGreater(line.length, .1)
+                        for fid in [fold.panel_a, fold.panel_b]:
+                            self.assertLess(line.difference(by_id[fid].buffer(.00002)).length, .0001)
+
     def testRoofRejected(self):
         with tempfile.TemporaryDirectory() as folder:
             path = pathlib.Path(folder)/'roof.stl'

@@ -70,6 +70,9 @@ panels, hinge tree, compensated flat panels and output bounds. Non-horizontal
 floors, roofs, curved fronts and structural holes are rejected. STL coordinates
 have no unit metadata; this mode explicitly interprets them as millimetres.
 Coplanar facet merging uses a 0.00001 mm grid and 0.0001 mm numerical closure.
+For stock thinner than a native wall offset, the simple mode extends the
+parallel child hinge edge back to the nominal joint before trimming. This
+preserves a continuous hinge without changing the source mesh or STEP engine.
 The simple mode clips each fold to its two compensated panels and pads the
 viewBox around the actual kerf contour.
 
